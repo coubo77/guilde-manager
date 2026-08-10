@@ -447,9 +447,31 @@ function loadStateThenRender(){
         // et on les envoie tout de suite au backend pour initialiser data.json.
         scheduleSave();
       }
+      maybeShowOnboarding();
       render();
     })
     .catch(() => { LAST_SAVE_STATUS = 'error'; render(); });
+}
+
+// À la toute première connexion, le profil du joueur n'a pas encore de classe :
+// on lui demande de la choisir, ainsi que son statut, avant de continuer.
+function maybeShowOnboarding(){
+  if (!SESSION_USER || MODAL) return;
+  const p = PLAYERS.find(pl => pl.discordId === SESSION_USER.discordId);
+  if (p && !p.classId) {
+    MODAL = { type: 'onboarding', playerId: p.id, form: { classId: '', status: p.status || 'Nouveau joueur' }, error: '' };
+  }
+}
+
+function confirmOnboarding(){
+  if (!MODAL.form.classId) { MODAL.error = 'Choisissez votre classe pour continuer.'; render(); return; }
+  const p = player(MODAL.playerId);
+  if (p) {
+    p.classId = MODAL.form.classId;
+    p.status = MODAL.form.status;
+  }
+  MODAL = null;
+  toast('Profil complété, bienvenue dans la guilde !');
 }
 
 function avatarHtml(p, size){
@@ -721,14 +743,6 @@ function setSlotPlayer(groupId, slotIdx, playerId){
   g.slots[slotIdx].playerId = playerId || null;
   render();
 }
-// La classe d'un joueur se choisit au moment où on l'ajoute à un groupe,
-// et met à jour directement son profil (source unique de vérité).
-function setPlayerClass(playerId, classId){
-  const p = player(playerId);
-  if (!p) return;
-  p.classId = classId;
-  render();
-}
 function removeSlotPlayer(groupId, slotIdx){
   setSlotPlayer(groupId, slotIdx, null);
   toast("Joueur retiré de l'emplacement.");
@@ -805,7 +819,6 @@ function renderSidebar(){
   const items = [
     { id: 'dashboard', label: 'Tableau de bord', icon: '◈', adminOnly: true },
     { id: 'players', label: 'Joueurs', icon: '☰' },
-    { id: 'classes', label: 'Classes', icon: '◆', adminOnly: true },
     { id: 'pve', label: 'PvE', icon: '⚔' },
     { id: 'pvp', label: 'PvP', icon: '⚡' },
   ];
@@ -850,7 +863,6 @@ function renderTopbar(){
       ${ACTIVE_TAB==='players' ? `
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <div class="gm-search"><input type="text" placeholder="Rechercher un pseudo…" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
-          <button class="gm-btn gm-btn-primary" data-action="new-player">+ Nouveau joueur</button>
         </div>` : ''}
     </div>
   `;
@@ -955,7 +967,7 @@ function renderPlayers(){
 function renderPlayerCard(p){
   const c = cls(p.classId);
   const c2 = p.secondClassId ? cls(p.secondClassId) : null;
-  const canEdit = isAdmin();
+  const canEdit = !!(SESSION_USER && p.discordId === SESSION_USER.discordId);
   const bgIcon = c && isImagePath(c.icon) ? c.icon : '';
   return `
     <div class="gm-panel gm-player-card">
@@ -1088,7 +1100,6 @@ function renderSlot(g, s, i){
 
   const c = cls(p.classId);
   const otherGroups = groupsContainingPlayer(p.id, g.type, g.id);
-  const needsClass = !p.classId;
 
   return `
     <div class="gm-slot filled">
@@ -1097,17 +1108,11 @@ function renderSlot(g, s, i){
       <div class="gm-slot-filled-body">
         ${avatarHtml(p, 34)}
         <div style="min-width:0;">
-          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? '<span class=\"gm-badge-new\" style=\"margin-left:4px;\">Nouveau</span>' : ''}</div>
-          ${!canEdit ? `<div style="margin-top:3px;">${classPill(p.classId)}</div>` : ''}
+          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? '<span class="gm-badge-new" style="margin-left:4px;">Nouveau</span>' : ''}</div>
+          <div style="margin-top:3px;">${classPill(p.classId)}</div>
         </div>
       </div>
-      ${canEdit ? `
-      <div class="gm-slot-classoverride">
-        <select data-action="player-class-select" data-player="${p.id}" style="${needsClass ? 'border-color:var(--new);color:var(--new);' : ''}">
-          <option value="" ${needsClass?'selected':''}>${needsClass ? '⚠ Classe requise —' : ''} Choisir une classe</option>
-          ${CLASSES.map(cc => `<option value="${cc.id}" ${p.classId===cc.id?'selected':''}>${esc(cc.name)}</option>`).join('')}
-        </select>
-      </div>` : ''}
+      ${!p.classId ? `<div class="gm-slot-warning">⚠ Ce joueur n'a pas encore de classe définie</div>` : ''}
       ${otherGroups.length ? `<div class="gm-slot-warning">⚠ Déjà dans « ${esc(otherGroups[0].name)} »</div>` : ''}
     </div>
   `;
@@ -1122,7 +1127,38 @@ function renderModal(){
   if (MODAL.type === 'class') return renderClassModal();
   if (MODAL.type === 'confirm') return renderConfirmModal();
   if (MODAL.type === 'discordConfig') return renderDiscordConfigModal();
+  if (MODAL.type === 'onboarding') return renderOnboardingModal();
   return '';
+}
+
+function renderOnboardingModal(){
+  const f = MODAL.form;
+  return `
+    <div class="gm-modal-overlay">
+      <div class="gm-modal" data-stop="1" style="max-width:400px;">
+        <h3>Bienvenue dans la guilde !</h3>
+        <div class="gm-note" style="margin-bottom:16px;">Avant de continuer, complétez votre profil.</div>
+        <div class="gm-form-row">
+          <label>Votre classe *</label>
+          <select data-field="classId" data-action="form-input">
+            <option value="" ${!f.classId?'selected':''}>— Choisir une classe —</option>
+            ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="gm-form-row">
+          <label>Votre statut</label>
+          <select data-field="status" data-action="form-input">
+            <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
+            <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
+          </select>
+        </div>
+        ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
+        <div class="gm-modal-actions">
+          <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;" data-action="confirm-onboarding">Confirmer</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderDiscordConfigModal(){
@@ -1276,16 +1312,16 @@ function bindEvents(){
       return;
     }
 
-    if (['nav','new-player','edit-player','new-class','edit-class','delete-class',
+    if (['nav','edit-player','new-class','edit-class','delete-class',
          'new-group','delete-group','remove-slot',
          'confirm-modal','save-player','save-class','fetch-discord','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
-         'connect-discord','logout-discord'].includes(action)) {
+         'connect-discord','logout-discord','confirm-onboarding'].includes(action)) {
       el.addEventListener('click', (e) => {
         handleClick(action, el, e);
       });
     }
-    if (['filter-search','filter-class','filter-status','group-field','slot-select','player-class-select','form-input','form-checkbox'].includes(action)) {
+    if (['filter-search','filter-class','filter-status','group-field','slot-select','form-input','form-checkbox'].includes(action)) {
       const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type==='date' || el.type==='time' || el.type==='color' || el.type==='number') ? 'change' : 'input';
       el.addEventListener(evt, (e) => handleInput(action, el, e));
     }
@@ -1299,7 +1335,6 @@ function handleClick(action, el, e){
   switch(action){
     case 'toggle-mobile-nav': MOBILE_NAV_OPEN = !MOBILE_NAV_OPEN; render(); break;
     case 'nav': ACTIVE_TAB = el.getAttribute('data-tab'); MOBILE_NAV_OPEN = false; render(); break;
-    case 'new-player': openPlayerModal(null); break;
     case 'edit-player': openPlayerModal(id); break;
     case 'new-class': openClassModal(null); break;
     case 'edit-class': openClassModal(id); break;
@@ -1317,6 +1352,7 @@ function handleClick(action, el, e){
     case 'test-discord-config': testDiscordConfig(); break;
     case 'connect-discord': connectWithDiscord(); break;
     case 'logout-discord': logoutDiscord(); break;
+    case 'confirm-onboarding': confirmOnboarding(); break;
   }
 }
 
@@ -1328,7 +1364,6 @@ function handleInput(action, el, e){
     case 'filter-status': PLAYER_FILTERS.status = val; render(); break;
     case 'group-field': updateGroupField(el.getAttribute('data-group'), el.getAttribute('data-field'), val); break;
     case 'slot-select': setSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
-    case 'player-class-select': setPlayerClass(el.getAttribute('data-player'), val); break;
     case 'form-input': MODAL.form[el.getAttribute('data-field')] = val; MODAL.error=''; if(document.activeElement===el){renderKeepInputFocus(el);} else render(); break;
     case 'form-checkbox': MODAL.form[el.getAttribute('data-field')] = el.checked; render(); break;
   }
