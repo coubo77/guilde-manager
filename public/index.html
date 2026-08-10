@@ -333,7 +333,7 @@ html, body {
 
 const uid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-let CLASSES = [
+const DEFAULT_CLASSES = [
   { id: 'c1', name: 'Gladiateur', color: '#ff8f6b', icon: 'classes/gladiator.png', order: 1 },
   { id: 'c2', name: 'Templier', color: '#4f9dff', icon: 'classes/templar.png', order: 2 },
   { id: 'c3', name: 'Assassin', color: '#ff6b7a', icon: 'classes/assassin.png', order: 3 },
@@ -343,6 +343,7 @@ let CLASSES = [
   { id: 'c7', name: 'Clerc', color: '#f6c552', icon: 'classes/cleric.png', order: 7 },
   { id: 'c8', name: 'Chanteur', color: '#ff6bd0', icon: 'classes/chanter.png', order: 8 },
 ];
+let CLASSES = DEFAULT_CLASSES.slice();
 
 // Données de démonstration désactivées : la liste des joueurs est vide au premier
 // démarrage. Utilisez la synchronisation Discord (rôle configuré, "Aion 2" par défaut)
@@ -436,7 +437,9 @@ function loadStateThenRender(){
       const hasSaved = data && ((data.players && data.players.length) || (data.classes && data.classes.length) || (data.groups && data.groups.length));
       if (hasSaved) {
         PLAYERS = data.players || [];
-        CLASSES = data.classes || CLASSES;
+        // Un tableau vide ([]) est "vrai" en JS, donc on vérifie sa longueur
+        // explicitement pour ne pas perdre les classes par défaut avec leurs icônes.
+        CLASSES = (data.classes && data.classes.length) ? data.classes : DEFAULT_CLASSES.slice();
         GROUPS = data.groups || [];
         LAST_SAVE_STATUS = 'ok';
       } else {
