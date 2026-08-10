@@ -10,6 +10,13 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #090c16;
+  min-height: 100%;
+}
+
 .gm-root {
   --bg: #090c16;
   --bg-2: #0d1220;
@@ -858,9 +865,6 @@ function renderDashboard(){
   const maxClass = Math.max(1, ...byClass.map(x => x.count));
 
   return `
-    <div class="gm-panel" style="background-image:url('wingmate-logo.png');background-size:auto 100%;background-position:left center;background-repeat:no-repeat;height:150px;margin-bottom:18px;position:relative;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:linear-gradient(90deg, transparent 45%, var(--panel-solid) 92%);"></div>
-    </div>
     <div class="gm-stat-grid">
       ${statCard(total, 'Joueurs au total')}
       ${statCard(nouveaux, 'Nouveaux joueurs')}
@@ -936,8 +940,12 @@ function renderPlayerCard(p){
   const c = cls(p.classId);
   const c2 = p.secondClassId ? cls(p.secondClassId) : null;
   const canEdit = isAdmin();
+  const bgIcon = c && isImagePath(c.icon) ? c.icon : '';
+  const bgStyle = bgIcon
+    ? `background-image:linear-gradient(115deg, transparent 38%, var(--panel-solid) 78%), url('${esc(bgIcon)}');background-repeat:no-repeat,no-repeat;background-position:right center, right -14px center;background-size:100% 100%, 118px 118px;`
+    : '';
   return `
-    <div class="gm-panel gm-player-card">
+    <div class="gm-panel gm-player-card" style="${bgStyle}">
       ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;">Nouveau</span>` : ''}
       <div class="gm-player-top">
         ${avatarHtml(p, 44)}
