@@ -21,6 +21,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = process.env.DISCORD_GUILD_ID || '';
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '';
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
+const REQUIRED_ROLE_NAME = process.env.DISCORD_REQUIRED_ROLE_NAME || 'Aion 2';
 const DISCORD_API = 'https://discord.com/api/v10';
 const DATA_FILE = path.join(__dirname, 'data.json');
 
@@ -33,6 +36,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 if (!BOT_TOKEN) {
   console.warn('[ATTENTION] DISCORD_BOT_TOKEN est manquant dans .env — les requêtes /api/discord/:id échoueront.');
+}
+if (!CLIENT_ID || !CLIENT_SECRET) {
+  console.warn('[ATTENTION] DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET manquants dans .env — la connexion Discord des joueurs échouera.');
 }
 
 /* ---------------------------------------------------------
@@ -98,69 +104,115 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, botTokenConfigured: !!BOT_TOKEN, guildConfigured: !!GUILD_ID });
 });
 
-async function fetchAllGuildMembers(guildId) {
-  let members = [];
-  let after = '0';
-  for (let i = 0; i < 10; i++) { // jusqu'à 10 000 membres (10 pages de 1000)
-    const res = await discordFetch(`/guilds/${guildId}/members?limit=1000&after=${after}`);
-    if (!res.ok) return { error: true, status: res.status };
-    const batch = await res.json();
-    members = members.concat(batch);
-    if (batch.length < 1000) break;
-    after = batch[batch.length - 1].user.id;
+async function getRoleByName(roleName){
+  const rolesRes = await discordFetch(`/guilds/${GUILD_ID}/roles`);
+  if (!rolesRes.ok) {
+    const err = new Error('roles_fetch_failed');
+    err.status = rolesRes.status;
+    throw err;
   }
-  return { error: false, members };
+  const roles = await rolesRes.json();
+  return roles.find(r => r.name.toLowerCase() === roleName.toLowerCase()) || null;
 }
 
-// Récupère les membres du serveur Discord possédant un rôle donné (par nom).
-// Utilisé pour importer automatiquement les joueurs ayant le rôle "Aion 2".
-// IMPORTANT : cette route doit être déclarée AVANT '/api/discord/:id' ci-dessous,
-// sinon Express interprète "role-members" comme une valeur de :id.
-app.get('/api/discord/role-members', async (req, res) => {
-  if (!GUILD_ID) {
-    return res.status(400).json({ error: 'guild_not_configured', message: 'DISCORD_GUILD_ID doit être renseigné dans .env pour synchroniser les membres du serveur.' });
+function uniquePseudo(players, base){
+  let candidate = base;
+  let i = 2;
+  while (players.find(p => p.pseudo.toLowerCase() === candidate.toLowerCase())) {
+    candidate = `${base} (${i})`; i++;
   }
-  if (!BOT_TOKEN) {
-    return res.status(500).json({ error: 'server_misconfigured', message: 'Le token du bot Discord n\'est pas configuré côté serveur.' });
+  return candidate;
+}
+
+// Étape 1 : on envoie le joueur s'authentifier sur Discord.
+app.get('/auth/discord/login', (req, res) => {
+  if (!CLIENT_ID) {
+    return res.status(500).send("Connexion Discord non configurée côté serveur (DISCORD_CLIENT_ID manquant).");
   }
-  const roleName = (req.query.role || process.env.DISCORD_SYNC_ROLE_NAME || 'Aion 2').toString();
+  const redirectUri = process.env.DISCORD_REDIRECT_URI || `${req.protocol}://${req.get('host')}/auth/discord/callback`;
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'identify',
+    prompt: 'consent',
+  });
+  res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);
+});
+
+// Étape 2 : Discord renvoie ici avec un code. On vérifie l'identité et le rôle,
+// puis on ajoute/actualise automatiquement le joueur dans data.json.
+app.get('/auth/discord/callback', async (req, res) => {
+  const { code, error: oauthError } = req.query;
+  if (oauthError) return res.redirect('/?discord_login=denied&reason=cancelled');
+  if (!code) return res.redirect('/?discord_login=error&reason=missing_code');
+  if (!GUILD_ID) return res.redirect('/?discord_login=error&reason=guild_not_configured');
+  if (!CLIENT_ID || !CLIENT_SECRET) return res.redirect('/?discord_login=error&reason=server_misconfigured');
 
   try {
-    const rolesRes = await discordFetch(`/guilds/${GUILD_ID}/roles`);
-    if (rolesRes.status === 401) {
-      return res.status(502).json({ error: 'unauthorized', message: 'Autorisation insuffisante : le token du bot est invalide.' });
+    const redirectUri = process.env.DISCORD_REDIRECT_URI || `${req.protocol}://${req.get('host')}/auth/discord/callback`;
+
+    const tokenRes = await fetch(`${DISCORD_API}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: redirectUri,
+      }),
+    });
+    if (!tokenRes.ok) return res.redirect('/?discord_login=error&reason=token_exchange_failed');
+    const tokenData = await tokenRes.json();
+
+    const userRes = await fetch(`${DISCORD_API}/users/@me`, {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    if (!userRes.ok) return res.redirect('/?discord_login=error&reason=user_fetch_failed');
+    const user = await userRes.json();
+
+    let role;
+    try {
+      role = await getRoleByName(REQUIRED_ROLE_NAME);
+    } catch (e) {
+      return res.redirect('/?discord_login=error&reason=role_lookup_failed');
     }
-    if (!rolesRes.ok) {
-      return res.status(502).json({ error: 'connection_error', message: `Erreur de connexion à Discord (code ${rolesRes.status}).` });
-    }
-    const roles = await rolesRes.json();
-    const role = roles.find(r => r.name.toLowerCase() === roleName.toLowerCase());
-    if (!role) {
-      return res.status(404).json({ error: 'role_not_found', message: `Aucun rôle nommé « ${roleName} » n'a été trouvé sur ce serveur Discord.` });
+    if (!role) return res.redirect('/?discord_login=error&reason=role_not_found');
+
+    const memberRes = await discordFetch(`/guilds/${GUILD_ID}/members/${user.id}`);
+    if (memberRes.status === 404) return res.redirect('/?discord_login=denied&reason=not_member');
+    if (!memberRes.ok) return res.redirect('/?discord_login=error&reason=member_check_failed');
+    const member = await memberRes.json();
+    if (!Array.isArray(member.roles) || !member.roles.includes(role.id)) {
+      return res.redirect('/?discord_login=denied&reason=missing_role');
     }
 
-    const result = await fetchAllGuildMembers(GUILD_ID);
-    if (result.error) {
-      if (result.status === 403) {
-        return res.status(502).json({ error: 'forbidden', message: 'Autorisation insuffisante : vérifiez que le "Server Members Intent" est activé pour le bot et qu\'il a la permission de voir les membres.' });
-      }
-      return res.status(502).json({ error: 'connection_error', message: `Erreur de connexion à Discord (code ${result.status}).` });
+    const state = readState() || { players: [], classes: [], groups: [] };
+    state.players = state.players || [];
+    const avatarUrlStr = avatarUrl(user.id, user.avatar);
+    const displayName = member.nick || user.global_name || user.username;
+
+    let p = state.players.find(pl => pl.discordId === user.id);
+    if (p) {
+      p.discordUsername = user.username;
+      p.discordAvatar = avatarUrlStr;
+      p.discordSynced = true;
+    } else {
+      state.players.push({
+        id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        pseudo: uniquePseudo(state.players, displayName),
+        classId: '', secondClassId: '', status: 'Nouveau joueur',
+        discordId: user.id, discordUsername: user.username, discordAvatar: avatarUrlStr,
+        discordSynced: true,
+      });
     }
+    writeState(state);
 
-    const members = result.members
-      .filter(m => m.user && !m.user.bot && Array.isArray(m.roles) && m.roles.includes(role.id))
-      .map(m => ({
-        id: m.user.id,
-        username: m.user.username,
-        displayName: m.user.global_name || m.user.username,
-        nickname: m.nick || null,
-        avatarUrl: avatarUrl(m.user.id, m.user.avatar),
-      }));
-
-    res.json({ role: { id: role.id, name: role.name }, members });
+    res.redirect('/?discord_login=success');
   } catch (err) {
     console.error(err);
-    res.status(502).json({ error: 'connection_error', message: 'Problème de connexion à Discord.' });
+    res.redirect('/?discord_login=error');
   }
 });
 

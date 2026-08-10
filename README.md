@@ -18,6 +18,17 @@ au navigateur.
 5. Dans l'onglet **OAuth2 > URL Generator**, cochez le scope `bot`, puis la
    permission **View Channels** (le minimum nécessaire). Copiez l'URL générée
    et ouvrez-la dans un navigateur pour inviter le bot sur votre serveur de guilde.
+6. Toujours dans l'onglet **OAuth2** (page générale, pas l'URL Generator),
+   notez le **Client ID**, et cliquez sur **Reset Secret** pour obtenir le
+   **Client Secret** — vous en aurez besoin à l'étape 3 pour la connexion des
+   joueurs.
+7. Dans la même page **OAuth2**, section **Redirects**, cliquez sur **Add
+   Redirect** et entrez :
+   - En local : `http://localhost:3001/auth/discord/callback`
+   - En production : `https://guilde.votredomaine.com/auth/discord/callback`
+     (remplacez par votre vraie adresse une fois déployé — voir plus bas)
+
+   Vous pouvez ajouter les deux en même temps, pas de souci.
 
 ## 2. Récupérer l'ID du serveur (facultatif mais recommandé)
 
@@ -36,36 +47,40 @@ Ouvrez `.env` et renseignez :
 
 ```
 DISCORD_BOT_TOKEN=le_token_copié_à_l'étape_1
-DISCORD_GUILD_ID=l'id_du_serveur_copié_à_l'étape_2   # obligatoire pour la synchro par rôle
+DISCORD_GUILD_ID=l'id_du_serveur_copié_à_l'étape_2
+DISCORD_REQUIRED_ROLE_NAME=Aion 2
+DISCORD_CLIENT_ID=le_client_id_copié_à_l'étape_6
+DISCORD_CLIENT_SECRET=le_client_secret_copié_à_l'étape_6
 PORT=3001
 CORS_ORIGIN=*
 ```
 
-**Important : accès libre, sans mot de passe.** Cette version n'a plus de
-distinction Admin/Joueur ni de protection par mot de passe — toute personne
-qui ouvre `guilde-manager.html` et peut joindre ce backend a les mêmes
-droits complets (voir, éditer, supprimer, synchroniser). Adapté pour un
-usage strictement local/personnel. Si vous exposez un jour ce backend au-delà
-de votre machine, il faudra remettre une protection (dites-le-moi si besoin).
+**Important : accès libre, sans mot de passe administrateur.** N'importe qui
+qui ouvre le site a les mêmes droits complets (voir, éditer, supprimer). Seule
+l'inscription d'un joueur est protégée : elle passe obligatoirement par la
+connexion Discord, qui vérifie que la personne possède bien le rôle requis.
 
-## Synchroniser les joueurs depuis un rôle Discord
+## Connexion Discord des joueurs (remplace l'ancienne synchro manuelle)
 
-Depuis l'onglet **Joueurs**, le bouton **🔄 Synchroniser (rôle
-Aion 2)** importe automatiquement tous les membres du serveur Discord
-possédant le rôle **Aion 2** (nom configurable via `DISCORD_SYNC_ROLE_NAME`
-dans `.env`) comme nouveaux joueurs — pseudo, avatar et identifiant Discord
-sont pré-remplis ; il ne reste qu'à choisir leur classe.
+Depuis l'onglet **Joueurs**, le bouton **🔗 Connexion Discord** envoie le
+visiteur s'authentifier sur Discord (OAuth2). Si son compte est bien membre
+du serveur configuré (`DISCORD_GUILD_ID`) et possède le rôle
+`DISCORD_REQUIRED_ROLE_NAME` (« Aion 2 » par défaut), il est automatiquement
+ajouté à la liste des joueurs (pseudo, avatar et identifiant Discord
+pré-remplis — il ne reste qu'à choisir sa classe). Sinon, un message explique
+pourquoi l'accès a été refusé.
 
 Prérequis :
-- `DISCORD_GUILD_ID` doit être renseigné dans `.env` (voir étape 2 plus haut).
-- Le **Server Members Intent** doit être activé dans le portail développeur
-  Discord (onglet Bot de votre application) — voir étape 1.4.
+- `DISCORD_GUILD_ID`, `DISCORD_CLIENT_ID` et `DISCORD_CLIENT_SECRET` doivent
+  être renseignés dans `.env`.
+- L'URL de redirection (`http://localhost:3001/auth/discord/callback` en
+  local, ou `https://votre-domaine/auth/discord/callback` en production)
+  doit être enregistrée dans le portail développeur Discord (étape 1.7).
 - Un rôle nommé exactement « Aion 2 » (insensible à la casse) doit exister
   sur le serveur.
 
-Les joueurs déjà importés (même identifiant Discord) ne sont pas dupliqués
-lors des synchronisations suivantes — seuls les nouveaux membres du rôle
-sont ajoutés.
+Se reconnecter avec un compte déjà enregistré met simplement à jour son
+pseudo Discord et son avatar, sans créer de doublon.
 
 ## 4. Lancer le serveur
 
@@ -155,7 +170,9 @@ pointez votre domaine OVH dessus.
    ```
    DISCORD_BOT_TOKEN=...
    DISCORD_GUILD_ID=...
-   DISCORD_SYNC_ROLE_NAME=Aion 2
+   DISCORD_REQUIRED_ROLE_NAME=Aion 2
+   DISCORD_CLIENT_ID=...
+   DISCORD_CLIENT_SECRET=...
    CORS_ORIGIN=*
    ```
    *(pas besoin de `PORT`, Render le fournit automatiquement)*
@@ -178,6 +195,11 @@ pointez votre domaine OVH dessus.
 4. Validez. La propagation DNS prend de quelques minutes à quelques heures.
 5. Une fois propagé, Render active automatiquement le HTTPS pour votre
    domaine. Votre site est accessible sur `https://guilde.votredomaine.com`.
+6. **N'oubliez pas** de retourner sur le portail développeur Discord (étape
+   1.7) pour ajouter `https://guilde.votredomaine.com/auth/discord/callback`
+   à la liste des Redirects OAuth2 — sans ça, la connexion Discord échouera
+   une fois en ligne (le lien local `http://localhost:3001/...` ne suffit
+   plus depuis votre domaine public).
 
 ### Remarque sur le plan gratuit de Render
 
