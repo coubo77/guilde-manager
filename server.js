@@ -257,7 +257,12 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 
     // Rôle validé : on ajoute/actualise le joueur dans data.json.
-    const state = readState() || { players: [], classes: [], groups: [] };
+    // Pas de "classes: []" par défaut ici : ce backend ne connaît pas les
+    // classes par défaut (elles vivent côté site). Un tableau vide serait
+    // ensuite considéré comme "sauvegardé" et écraserait les classes par
+    // défaut du site au chargement suivant.
+    const state = readState() || { players: [] };
+    state.groups = state.groups || [];
     state.players = state.players || [];
     const avatarUrlStr = avatarUrl(user.id, user.avatar);
     const displayName = member.nick || user.global_name || user.username;
