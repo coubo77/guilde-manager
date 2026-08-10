@@ -56,6 +56,17 @@ html, body {
 
 .gm-shell { display: flex; min-height: 100vh; }
 
+/* ---- Écran de connexion Discord obligatoire ---- */
+.gm-gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.gm-gate-panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 20px;
+  padding: 36px 32px; max-width: 400px; width: 100%; text-align: center; backdrop-filter: blur(6px);
+}
+.gm-gate-logo { max-width: 220px; width: 100%; height: auto; margin: 0 auto 22px; display: block; }
+.gm-gate-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; margin: 0 0 10px; }
+.gm-gate-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0 0 22px; }
+.gm-gate-text strong { color: var(--text); }
+
 /* ---- Sidebar ---- */
 .gm-sidebar {
   width: 220px;
@@ -97,6 +108,15 @@ html, body {
   border-radius: 12px;
   padding: 12px;
 }
+.gm-user-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px;
+  padding: 6px 8px;
+}
+.gm-user-badge img { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border-strong); }
+.gm-user-badge-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-user-badge-logout { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 4px; line-height: 1; flex-shrink: 0; }
+.gm-user-badge-logout:hover { color: var(--danger); }
 .gm-role-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
 .gm-role-switch { display: flex; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 3px; gap: 3px; }
 .gm-role-switch button {
@@ -353,6 +373,10 @@ let DISCORD_API_BASE_URL = (typeof window !== 'undefined' && window.location && 
   ? window.location.origin
   : 'http://localhost:3001';
 
+// Connexion obligatoire : null = pas connecté, objet = infos du joueur connecté.
+let SESSION_USER = null;
+let SESSION_CHECKED = false;
+
 /* =========================================================
    UTILITAIRES
 ========================================================= */
@@ -374,24 +398,41 @@ function toast(msg, tone){
 let SAVE_TIMER = null;
 let LAST_SAVE_STATUS = null; // 'ok' | 'error' | null
 function scheduleSave(){
-  if (!DISCORD_API_BASE_URL) return;
+  if (!DISCORD_API_BASE_URL || !SESSION_USER) return;
   clearTimeout(SAVE_TIMER);
   SAVE_TIMER = setTimeout(() => {
     fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`, {
       method: 'PUT',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ players: PLAYERS, classes: CLASSES, groups: GROUPS }),
     })
-      .then(r => { LAST_SAVE_STATUS = r.ok ? 'ok' : 'error'; })
+      .then(r => {
+        if (r.status === 401) { SESSION_USER = null; render(); return; }
+        LAST_SAVE_STATUS = r.ok ? 'ok' : 'error';
+      })
       .catch(() => { LAST_SAVE_STATUS = 'error'; });
   }, 600);
 }
 
+function checkSession(){
+  if (!DISCORD_API_BASE_URL) { SESSION_USER = null; SESSION_CHECKED = true; return Promise.resolve(); }
+  return fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/session`, { credentials: 'same-origin' })
+    .then(r => r.ok ? r.json() : { authenticated: false })
+    .then(data => { SESSION_USER = data.authenticated ? data.user : null; })
+    .catch(() => { SESSION_USER = null; })
+    .finally(() => { SESSION_CHECKED = true; });
+}
+
 function loadStateThenRender(){
-  if (!DISCORD_API_BASE_URL) { render(); return; }
-  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`)
-    .then(r => r.ok ? r.json() : null)
+  if (!DISCORD_API_BASE_URL || !SESSION_USER) { render(); return; }
+  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`, { credentials: 'same-origin' })
+    .then(r => {
+      if (r.status === 401) { SESSION_USER = null; render(); return null; }
+      return r.ok ? r.json() : null;
+    })
     .then(data => {
+      if (!data) { render(); return; }
       const hasSaved = data && ((data.players && data.players.length) || (data.classes && data.classes.length) || (data.groups && data.groups.length));
       if (hasSaved) {
         PLAYERS = data.players || [];
@@ -491,6 +532,11 @@ function uniquePseudo(base){
 function connectWithDiscord(){
   if (!DISCORD_API_BASE_URL) { toast('Configurez d\'abord le backend Discord (⚙).', 'danger'); return; }
   window.location.href = `${DISCORD_API_BASE_URL.replace(/\/$/, '')}/auth/discord/login`;
+}
+
+function logoutDiscord(){
+  if (!DISCORD_API_BASE_URL) return;
+  window.location.href = `${DISCORD_API_BASE_URL.replace(/\/$/, '')}/auth/discord/logout`;
 }
 
 function handleDiscordLoginRedirect(){
@@ -696,9 +742,42 @@ function updateGroupField(groupId, field, value){
 
 function render(){
   const root = document.getElementById('gm-app');
+  if (!SESSION_CHECKED) {
+    root.innerHTML = renderLoadingScreen();
+    return;
+  }
+  if (!SESSION_USER) {
+    root.innerHTML = renderGateScreen();
+    bindEvents();
+    return;
+  }
   root.innerHTML = renderShell();
   bindEvents();
   scheduleSave();
+}
+
+function renderLoadingScreen(){
+  return `
+    <div class="gm-gate">
+      <div class="gm-gate-panel">
+        <img class="gm-gate-logo" src="wingmate-logo.png" alt="Wingmate">
+      </div>
+    </div>
+  `;
+}
+
+function renderGateScreen(){
+  return `
+    <div class="gm-gate">
+      <div class="gm-gate-panel">
+        <img class="gm-gate-logo" src="wingmate-logo.png" alt="Wingmate">
+        <h1 class="gm-gate-title">Accès réservé à la guilde</h1>
+        <p class="gm-gate-text">Connectez-vous avec votre compte Discord. Seuls les membres du serveur possédant le rôle <strong>Aion 2</strong> peuvent accéder à Wingmate.</p>
+        <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;" data-action="connect-discord">🔗 Se connecter avec Discord</button>
+      </div>
+    </div>
+    <div class="gm-toast-container">${TOASTS.map(t => `<div class="gm-toast" style="border-left-color:${t.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(t.msg)}</div>`).join('')}</div>
+  `;
 }
 
 function renderShell(){
@@ -738,7 +817,13 @@ function renderSidebar(){
         ${visible.map(i => `<div class="gm-nav-item ${ACTIVE_TAB===i.id?'active':''}" data-action="nav" data-tab="${i.id}"><span class="gm-nav-icon">${i.icon}</span>${esc(i.label)}</div>`).join('')}
       </div>
       <div class="gm-role-box">
-        <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;display:flex;align-items:center;gap:8px;justify-content:center;" data-action="open-discord-config">
+        ${SESSION_USER ? `
+        <div class="gm-user-badge">
+          ${SESSION_USER.avatarUrl ? `<img src="${esc(SESSION_USER.avatarUrl)}" alt="">` : ''}
+          <div class="gm-user-badge-name">${esc(SESSION_USER.pseudo)}</div>
+          <button class="gm-user-badge-logout" data-action="logout-discord" title="Se déconnecter">⏻</button>
+        </div>` : ''}
+        <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;" data-action="open-discord-config">
           <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};box-shadow:0 0 6px ${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};"></span>
           Discord
         </button>
@@ -762,7 +847,6 @@ function renderTopbar(){
       ${ACTIVE_TAB==='players' ? `
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <div class="gm-search"><input type="text" placeholder="Rechercher un pseudo…" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
-          <button class="gm-btn gm-btn-ghost" data-action="connect-discord">🔗 Connexion Discord</button>
           <button class="gm-btn gm-btn-primary" data-action="new-player">+ Nouveau joueur</button>
         </div>` : ''}
     </div>
@@ -1193,7 +1277,7 @@ function bindEvents(){
          'new-group','delete-group','remove-slot',
          'confirm-modal','save-player','save-class','fetch-discord','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
-         'connect-discord'].includes(action)) {
+         'connect-discord','logout-discord'].includes(action)) {
       el.addEventListener('click', (e) => {
         handleClick(action, el, e);
       });
@@ -1229,6 +1313,7 @@ function handleClick(action, el, e){
     case 'save-discord-config': saveDiscordConfig(); break;
     case 'test-discord-config': testDiscordConfig(); break;
     case 'connect-discord': connectWithDiscord(); break;
+    case 'logout-discord': logoutDiscord(); break;
   }
 }
 
@@ -1268,8 +1353,21 @@ function renderKeepInputFocus(sourceEl){
 /* =========================================================
    INIT
 ========================================================= */
-loadStateThenRender();
-handleDiscordLoginRedirect();
+/* =========================================================
+   INIT
+========================================================= */
+function initApp(){
+  render(); // affiche l'écran de chargement pendant la vérification de session
+  checkSession().then(() => {
+    handleDiscordLoginRedirect();
+    if (SESSION_USER) {
+      loadStateThenRender();
+    } else {
+      render();
+    }
+  });
+}
+initApp();
 
 })();
 </script>
