@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wingmate — Gestion des groupes</title>
+<link rel="icon" type="image/png" href="wingmate-crest.png">
+</head>
+<body>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -53,13 +62,14 @@
 }
 .gm-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
 .gm-brand-crest {
-  width: 34px; height: 34px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  background: linear-gradient(135deg, var(--violet), var(--blue));
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; color: #0a0e1a;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  overflow: hidden;
   flex-shrink: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(69,193,255,0.25), rgba(9,12,22,0.9));
+  border: 1px solid var(--border-strong);
 }
+.gm-brand-crest img { width: 100%; height: 100%; object-fit: cover; object-position: 35% 30%; display: block; }
 .gm-brand-text { font-size: 15px; font-weight: 600; line-height: 1.15; }
 .gm-brand-text span { display:block; font-size: 10px; color: var(--muted); font-family:'Inter'; font-weight:500; letter-spacing:0.08em; text-transform: uppercase; }
 
@@ -306,23 +316,15 @@
 const uid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 let CLASSES = [
-  { id: 'c1', name: 'Guerrier', role: 'Tank', color: '#4f9dff', icon: '🛡️', order: 1 },
-  { id: 'c2', name: 'Paladin', role: 'Tank', color: '#6ea8ff', icon: '⚔️', order: 2 },
-  { id: 'c3', name: 'Prêtre', role: 'Soigneur', color: '#35d29a', icon: '✚', order: 3 },
-  { id: 'c4', name: 'Druide', role: 'Soigneur', color: '#5fe0b0', icon: '🌿', order: 4 },
-  { id: 'c5', name: 'Mage', role: 'DPS', color: '#ff6b7a', icon: '🔥', order: 5 },
-  { id: 'c6', name: 'Chasseur', role: 'DPS', color: '#ff8f6b', icon: '🏹', order: 6 },
-  { id: 'c7', name: 'Voleur', role: 'DPS', color: '#ff6bd0', icon: '🗡️', order: 7 },
-  { id: 'c8', name: 'Barde', role: 'Support', color: '#f6c552', icon: '🎵', order: 8 },
+  { id: 'c1', name: 'Gladiateur', color: '#ff8f6b', icon: '⚔️', order: 1 },
+  { id: 'c2', name: 'Templier', color: '#4f9dff', icon: '🛡️', order: 2 },
+  { id: 'c3', name: 'Assassin', color: '#ff6b7a', icon: '🗡️', order: 3 },
+  { id: 'c4', name: 'Rôdeur', color: '#7ed957', icon: '🏹', order: 4 },
+  { id: 'c5', name: 'Sorcier', color: '#8b6bff', icon: '🔥', order: 5 },
+  { id: 'c6', name: 'Élémentaliste', color: '#45c1ff', icon: '🌪️', order: 6 },
+  { id: 'c7', name: 'Clerc', color: '#f6c552', icon: '✚', order: 7 },
+  { id: 'c8', name: 'Chanteur', color: '#ff6bd0', icon: '🎵', order: 8 },
 ];
-
-function mkPlayer(pseudo, classId, secondClassId, status, discordId, discordUsername, avatarSeed, pve, pvp, synced) {
-  return {
-    id: uid('p'), pseudo, classId, secondClassId: secondClassId || '', status,
-    discordId, discordUsername, discordAvatar: avatarSeed ? `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}` : '',
-    discordSynced: !!synced, pve, pvp,
-  };
-}
 
 // Données de démonstration désactivées : la liste des joueurs est vide au premier
 // démarrage. Utilisez la synchronisation Discord (rôle configuré, "Aion 2" par défaut)
@@ -331,7 +333,7 @@ let PLAYERS = [];
 
 function mkGroup(type, name, activity, date, time, slotPseudos, subPseudos) {
   const findId = (pseudo) => { const p = PLAYERS.find(pl => pl.pseudo === pseudo); return p ? p.id : null; };
-  const slots = [0,1,2,3,4].map(i => ({ playerId: slotPseudos[i] ? findId(slotPseudos[i]) : null, classOverride: '' }));
+  const slots = [0,1,2,3,4].map(i => ({ playerId: slotPseudos[i] ? findId(slotPseudos[i]) : null }));
   return { id: uid('g'), type, name, activity, date, time, slots, substitutes: (subPseudos||[]).map(findId).filter(Boolean) };
 }
 
@@ -341,7 +343,7 @@ let ACTIVE_TAB = 'dashboard';
 let ACTIVE_GROUP_SUBTAB = { pve: null, pvp: null };
 let TOASTS = [];
 let MODAL = null; // {type, ...}
-let PLAYER_FILTERS = { search: '', classId: '', status: '', pve: '', pvp: '' };
+let PLAYER_FILTERS = { search: '', classId: '', status: '' };
 let MOBILE_NAV_OPEN = false;
 // URL du backend Discord (ex. http://localhost:3001). Voir discord-backend/README.md.
 // Reste en mémoire pour la session ; laissez vide pour rester en mode démonstration.
@@ -427,10 +429,6 @@ function classPill(classId, overrideName){
   </span>`;
 }
 
-function roleColor(role){
-  return { Tank: 'var(--tank)', Soigneur: 'var(--healer)', DPS: 'var(--dps)', Support: 'var(--support)' }[role] || '#888';
-}
-
 /* group membership warning: is player in another group of same type? */
 function groupsContainingPlayer(playerId, type, excludeGroupId){
   return GROUPS.filter(g => g.type === type && g.id !== excludeGroupId &&
@@ -447,8 +445,8 @@ function openPlayerModal(playerId){
     type: 'player',
     editingId: playerId || null,
     form: existing ? { ...existing } : {
-      pseudo: '', classId: CLASSES[0] ? CLASSES[0].id : '', secondClassId: '', status: 'Nouveau joueur',
-      discordId: '', discordUsername: '', discordAvatar: '', discordSynced: false, pve: true, pvp: true,
+      pseudo: '', classId: '', secondClassId: '', status: 'Nouveau joueur',
+      discordId: '', discordUsername: '', discordAvatar: '', discordSynced: false,
     },
     error: '',
     discordStatus: null,
@@ -471,36 +469,6 @@ function savePlayerForm(){
     toast('Joueur ajouté à la guilde.');
   }
   MODAL = null;
-  render();
-}
-
-function requestDeletePlayer(playerId){
-  const p = player(playerId);
-  MODAL = { type: 'confirm', title: 'Supprimer ce joueur ?',
-    message: `« ${p.pseudo} » sera retiré de la guilde et de tous les groupes. Cette action est irréversible.`,
-    onConfirm: () => {
-      PLAYERS = PLAYERS.filter(pl => pl.id !== playerId);
-      GROUPS.forEach(g => {
-        g.slots.forEach(s => { if (s.playerId === playerId) s.playerId = null; });
-        g.substitutes = g.substitutes.filter(id => id !== playerId);
-      });
-      toast('Joueur supprimé.', 'danger');
-      MODAL = null; render();
-    }
-  };
-  render();
-}
-
-function requestClearPlayers(){
-  MODAL = { type: 'confirm', title: 'Vider la liste des joueurs ?',
-    message: `Tous les joueurs (${PLAYERS.length}) et tous les groupes PvE/PvP seront supprimés, car les groupes référencent ces joueurs. Cette action est irréversible.`,
-    onConfirm: () => {
-      PLAYERS = [];
-      GROUPS = [];
-      toast('Liste des joueurs et groupes vidée.', 'danger');
-      MODAL = null; render();
-    }
-  };
   render();
 }
 
@@ -536,10 +504,10 @@ function syncDiscordRole(){
         PLAYERS.push({
           id: uid('p'),
           pseudo: uniquePseudo(m.nickname || m.displayName || m.username),
-          classId: CLASSES[0] ? CLASSES[0].id : '',
+          classId: '',
           secondClassId: '', status: 'Nouveau joueur',
           discordId: m.id, discordUsername: m.username, discordAvatar: m.avatarUrl,
-          discordSynced: true, pve: true, pvp: true,
+          discordSynced: true,
         });
         added++;
       });
@@ -647,7 +615,7 @@ function openClassModal(classId){
   const existing = classId ? cls(classId) : null;
   MODAL = {
     type: 'class', editingId: classId || null,
-    form: existing ? { ...existing } : { name: '', role: 'DPS', color: '#8b6bff', icon: '', order: CLASSES.length + 1 },
+    form: existing ? { ...existing } : { name: '', color: '#8b6bff', icon: '', order: CLASSES.length + 1 },
     error: '',
   };
   render();
@@ -681,7 +649,7 @@ function requestDeleteClass(classId){
 function createGroup(type){
   const count = GROUPS.filter(g => g.type === type).length;
   const g = { id: uid('g'), type, name: 'Groupe ' + (count + 1), activity: '', date: '', time: '',
-    slots: [0,1,2,3,4].map(() => ({ playerId: null, classOverride: '' })), substitutes: [] };
+    slots: [0,1,2,3,4].map(() => ({ playerId: null })), substitutes: [] };
   GROUPS.push(g);
   toast('Groupe créé.');
   render();
@@ -700,7 +668,7 @@ function resetGroup(groupId){
   MODAL = { type: 'confirm', title: 'Réinitialiser ce groupe ?', message: 'Tous les emplacements et remplaçants seront vidés.',
     onConfirm: () => {
       const g = GROUPS.find(x => x.id === groupId);
-      g.slots = [0,1,2,3,4].map(() => ({ playerId: null, classOverride: '' }));
+      g.slots = [0,1,2,3,4].map(() => ({ playerId: null }));
       g.substitutes = [];
       toast('Groupe réinitialisé.');
       MODAL = null; render();
@@ -718,12 +686,14 @@ function deleteGroup(groupId){
 function setSlotPlayer(groupId, slotIdx, playerId){
   const g = GROUPS.find(x => x.id === groupId);
   g.slots[slotIdx].playerId = playerId || null;
-  if (!playerId) g.slots[slotIdx].classOverride = '';
   render();
 }
-function setSlotClassOverride(groupId, slotIdx, classId){
-  const g = GROUPS.find(x => x.id === groupId);
-  g.slots[slotIdx].classOverride = classId;
+// La classe d'un joueur se choisit au moment où on l'ajoute à un groupe,
+// et met à jour directement son profil (source unique de vérité).
+function setPlayerClass(playerId, classId){
+  const p = player(playerId);
+  if (!p) return;
+  p.classId = classId;
   render();
 }
 function removeSlotPlayer(groupId, slotIdx){
@@ -752,20 +722,15 @@ function saveGroupNotify(){
 
 function copyGroupToClipboard(groupId){
   const g = GROUPS.find(x => x.id === groupId);
-  const roleOrder = ['Tank', 'Soigneur', 'DPS', 'Support'];
   const lines = [];
   lines.push((g.type === 'pve' ? 'Groupe PvE ' : 'Groupe PvP ') + g.name.replace(/^Groupe\s*/i, ''));
-  const filled = g.slots.filter(s => s.playerId).map(s => {
+  g.slots.forEach((s, i) => {
+    if (!s.playerId) return;
     const p = player(s.playerId);
     const c = cls(p.classId);
-    return { pseudo: p.pseudo, className: s.classOverride ? (cls(s.classOverride)||{}).name : (c ? c.name : '?'), role: s.classOverride ? (cls(s.classOverride)||{}).role : (c ? c.role : '') };
+    const className = c ? c.name : 'classe non définie';
+    lines.push(`${i+1}. ${p.pseudo} — ${className}`);
   });
-  roleOrder.forEach(role => {
-    filled.filter(f => f.role === role).forEach(f => {
-      lines.push(`${role} : ${f.pseudo} — ${f.className}`);
-    });
-  });
-  filled.filter(f => !roleOrder.includes(f.role)).forEach(f => lines.push(`${f.role || '?'} : ${f.pseudo} — ${f.className}`));
   const subs = g.substitutes.map(id => { const p = player(id); return p ? p.pseudo : null; }).filter(Boolean);
   if (subs.length) lines.push('Remplaçants : ' + subs.join(', '));
   const text = lines.join('\\n');
@@ -795,7 +760,7 @@ function render(){
 function renderShell(){
   return `
     <div class="gm-mobile-topbar">
-      <div class="gm-brand"><div class="gm-brand-crest">G</div><div class="gm-brand-text">Guilde Manager</div></div>
+      <div class="gm-brand"><div class="gm-brand-crest"><img src="wingmate-crest.png" alt="Wingmate"></div><div class="gm-brand-text">Wingmate</div></div>
       <button class="gm-btn gm-btn-ghost gm-btn-sm" data-action="toggle-mobile-nav">☰ Menu</button>
     </div>
     <div class="gm-shell">
@@ -822,8 +787,8 @@ function renderSidebar(){
   return `
     <div class="gm-sidebar ${MOBILE_NAV_OPEN ? 'open' : ''}">
       <div class="gm-brand">
-        <div class="gm-brand-crest">G</div>
-        <div class="gm-brand-text">Guilde Manager<span>Gestion PvE / PvP</span></div>
+        <div class="gm-brand-crest"><img src="wingmate-crest.png" alt="Wingmate"></div>
+        <div class="gm-brand-text">Wingmate<span>Gestion des groupes</span></div>
       </div>
       <div class="gm-nav">
         ${visible.map(i => `<div class="gm-nav-item ${ACTIVE_TAB===i.id?'active':''}" data-action="nav" data-tab="${i.id}"><span class="gm-nav-icon">${i.icon}</span>${esc(i.label)}</div>`).join('')}
@@ -861,7 +826,6 @@ function renderTopbar(){
           <div class="gm-search"><input type="text" placeholder="Rechercher un pseudo…" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
           <button class="gm-btn gm-btn-ghost" data-action="sync-discord-role">🔄 Synchroniser (rôle Aion 2)</button>
           <button class="gm-btn gm-btn-primary" data-action="new-player">+ Nouveau joueur</button>
-          ${PLAYERS.length ? `<button class="gm-btn gm-btn-danger" data-action="clear-players">Vider la liste</button>` : ''}
         </div>` : ''}
     </div>
   `;
@@ -885,47 +849,32 @@ function renderTabContent(){
 function renderDashboard(){
   const total = PLAYERS.length;
   const nouveaux = PLAYERS.filter(p => p.status === 'Nouveau joueur').length;
-  const pveAvail = PLAYERS.filter(p => p.pve).length;
-  const pvpAvail = PLAYERS.filter(p => p.pvp).length;
   const unsynced = PLAYERS.filter(p => !p.discordSynced).length;
   const groupsCount = GROUPS.length;
 
   const byClass = CLASSES.map(c => ({ c, count: PLAYERS.filter(p => p.classId === c.id || p.secondClassId === c.id).length }));
   const maxClass = Math.max(1, ...byClass.map(x => x.count));
-  const roles = ['Tank', 'Soigneur', 'DPS', 'Support'];
-  const byRole = roles.map(r => ({ role: r, count: PLAYERS.filter(p => { const c = cls(p.classId); return c && c.role === r; }).length }));
-  const maxRole = Math.max(1, ...byRole.map(x => x.count));
 
   return `
+    <div class="gm-panel" style="background-image:url('wingmate-logo.png');background-size:auto 145%;background-position:left -10px center;background-repeat:no-repeat;min-height:110px;margin-bottom:18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg, transparent 40%, var(--panel-solid) 92%);"></div>
+    </div>
     <div class="gm-stat-grid">
       ${statCard(total, 'Joueurs au total')}
       ${statCard(nouveaux, 'Nouveaux joueurs')}
-      ${statCard(pveAvail, 'Disponibles PvE')}
-      ${statCard(pvpAvail, 'Disponibles PvP')}
       ${statCard(groupsCount, 'Groupes créés')}
       ${statCard(unsynced, 'Profils Discord non synchronisés')}
     </div>
-    <div class="gm-dash-row">
-      <div class="gm-panel">
-        <h3 style="margin:0 0 12px;font-size:14px;">Répartition par classe</h3>
-        ${byClass.map(x => `
-          <div class="gm-bar-row">
-            <div class="gm-bar-label">${esc(x.c.icon||'')} ${esc(x.c.name)}</div>
-            <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxClass*100)}%;background:${x.c.color}"></div></div>
-            <div class="gm-bar-value">${x.count}</div>
-          </div>`).join('') || '<div class="gm-note">Aucune classe configurée.</div>'}
-      </div>
-      <div class="gm-panel">
-        <h3 style="margin:0 0 12px;font-size:14px;">Répartition par rôle</h3>
-        ${byRole.map(x => `
-          <div class="gm-bar-row">
-            <div class="gm-bar-label">${esc(x.role)}</div>
-            <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxRole*100)}%;background:${roleColor(x.role)}"></div></div>
-            <div class="gm-bar-value">${x.count}</div>
-          </div>`).join('')}
-      </div>
-    </div>
     <div class="gm-panel">
+      <h3 style="margin:0 0 12px;font-size:14px;">Répartition par classe</h3>
+      ${byClass.map(x => `
+        <div class="gm-bar-row">
+          <div class="gm-bar-label">${esc(x.c.icon||'')} ${esc(x.c.name)}</div>
+          <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxClass*100)}%;background:${x.c.color}"></div></div>
+          <div class="gm-bar-value">${x.count}</div>
+        </div>`).join('') || '<div class="gm-note">Aucune classe configurée.</div>'}
+    </div>
+    <div class="gm-panel" style="margin-top:16px;">
       <h3 style="margin:0 0 12px;font-size:14px;">Profils Discord non synchronisés</h3>
       ${unsynced === 0 ? '<div class="gm-note">Tous les profils sont synchronisés.</div>' : `
         <div class="gm-players-grid">
@@ -941,6 +890,7 @@ function renderDashboard(){
     </div>
   `;
 }
+
 function statCard(value, label){
   return `<div class="gm-panel gm-stat-card"><div class="gm-stat-value gm-mono">${value}</div><div class="gm-stat-label">${esc(label)}</div></div>`;
 }
@@ -954,10 +904,6 @@ function filteredPlayers(){
     if (PLAYER_FILTERS.search && !p.pseudo.toLowerCase().includes(PLAYER_FILTERS.search.toLowerCase())) return false;
     if (PLAYER_FILTERS.classId && p.classId !== PLAYER_FILTERS.classId && p.secondClassId !== PLAYER_FILTERS.classId) return false;
     if (PLAYER_FILTERS.status && p.status !== PLAYER_FILTERS.status) return false;
-    if (PLAYER_FILTERS.pve === 'yes' && !p.pve) return false;
-    if (PLAYER_FILTERS.pve === 'no' && p.pve) return false;
-    if (PLAYER_FILTERS.pvp === 'yes' && !p.pvp) return false;
-    if (PLAYER_FILTERS.pvp === 'no' && p.pvp) return false;
     return true;
   });
 }
@@ -974,16 +920,6 @@ function renderPlayers(){
         <option value="">Tous les statuts</option>
         <option value="Nouveau joueur" ${PLAYER_FILTERS.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
         <option value="Joueur expérimenté" ${PLAYER_FILTERS.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
-      </select>
-      <select class="gm-select" data-action="filter-pve">
-        <option value="">PvE : tous</option>
-        <option value="yes" ${PLAYER_FILTERS.pve==='yes'?'selected':''}>Disponible PvE</option>
-        <option value="no" ${PLAYER_FILTERS.pve==='no'?'selected':''}>Indisponible PvE</option>
-      </select>
-      <select class="gm-select" data-action="filter-pvp">
-        <option value="">PvP : tous</option>
-        <option value="yes" ${PLAYER_FILTERS.pvp==='yes'?'selected':''}>Disponible PvP</option>
-        <option value="no" ${PLAYER_FILTERS.pvp==='no'?'selected':''}>Indisponible PvP</option>
       </select>
       <div class="gm-note" style="margin-left:auto">${list.length} joueur${list.length>1?'s':''}</div>
     </div>
@@ -1011,16 +947,10 @@ function renderPlayerCard(p){
       <div class="gm-player-meta">
         ${classPill(p.classId)}
         ${c2 ? classPill(p.secondClassId) : ''}
-        ${c ? `<span class="gm-role-tag">${esc(c.role)}</span>` : ''}
-      </div>
-      <div class="gm-player-avail">
-        <span><span class="gm-avail-dot" style="background:${p.pve?'var(--success)':'var(--muted-2)'}"></span>PvE ${p.pve?'oui':'non'}</span>
-        <span><span class="gm-avail-dot" style="background:${p.pvp?'var(--success)':'var(--muted-2)'}"></span>PvP ${p.pvp?'oui':'non'}</span>
       </div>
       ${canEdit ? `
       <div class="gm-player-actions">
         <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-player" data-id="${p.id}">Modifier</button>
-        ${isAdmin() ? `<button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-player" data-id="${p.id}">Supprimer</button>` : ''}
       </div>` : ''}
     </div>
   `;
@@ -1044,13 +974,12 @@ function renderClasses(){
       </div>
       <div class="gm-scrollx">
       <table class="gm-table">
-        <thead><tr><th>Ordre</th><th>Classe</th><th>Rôle</th><th>Couleur</th><th></th></tr></thead>
+        <thead><tr><th>Ordre</th><th>Classe</th><th>Couleur</th><th></th></tr></thead>
         <tbody>
           ${sorted.map(c => `
             <tr>
               <td class="gm-mono">${c.order}</td>
               <td>${esc(c.icon||'')} ${esc(c.name)}</td>
-              <td><span class="gm-role-tag" style="color:${roleColor(c.role)}">${esc(c.role)}</span></td>
               <td><span class="gm-color-swatch" style="background:${c.color}"></span> <span class="gm-mono" style="color:var(--muted)">${c.color}</span></td>
               <td style="text-align:right;white-space:nowrap;">
                 <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-class" data-id="${c.id}">Modifier</button>
@@ -1078,16 +1007,11 @@ function renderGroupsTab(type){
 
 function renderGroupCard(g){
   const filledSlots = g.slots.filter(s => s.playerId);
-  const roleCounts = { Tank: 0, Soigneur: 0, DPS: 0, Support: 0 };
   let newCount = 0;
   filledSlots.forEach(s => {
     const p = player(s.playerId);
-    const effClass = s.classOverride ? cls(s.classOverride) : cls(p.classId);
-    if (effClass && roleCounts.hasOwnProperty(effClass.role)) roleCounts[effClass.role]++;
     if (p.status === 'Nouveau joueur') newCount++;
   });
-  const noTank = roleCounts.Tank === 0;
-  const noHeal = roleCounts.Soigneur === 0;
 
   return `
     <div class="gm-panel gm-group-card" data-group="${g.id}">
@@ -1125,13 +1049,8 @@ function renderGroupCard(g){
       </div>
 
       <div class="gm-balance-row">
-        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--tank)">${roleCounts.Tank}</span> Tank</div>
-        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--healer)">${roleCounts.Soigneur}</span> Soigneur</div>
-        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--dps)">${roleCounts.DPS}</span> DPS</div>
-        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--support)">${roleCounts.Support}</span> Support</div>
+        <div class="gm-balance-item"><span class="gm-balance-count">${filledSlots.length}</span> / 5 joueurs</div>
         <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> Nouveaux</div>
-        ${noTank ? '<span class="gm-alert-chip">⚠ Aucun Tank</span>' : ''}
-        ${noHeal ? '<span class="gm-alert-chip">⚠ Aucun Soigneur</span>' : ''}
         ${isAdmin() ? `
         <div class="gm-group-actions">
           <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="copy-group" data-group="${g.id}">📋 Copier</button>
@@ -1172,7 +1091,7 @@ function renderSlot(g, s, i){
 
   const c = cls(p.classId);
   const otherGroups = groupsContainingPlayer(p.id, g.type, g.id);
-  const effClass = s.classOverride ? cls(s.classOverride) : c;
+  const needsClass = !p.classId;
 
   return `
     <div class="gm-slot filled">
@@ -1182,14 +1101,14 @@ function renderSlot(g, s, i){
         ${avatarHtml(p, 34)}
         <div style="min-width:0;">
           <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? '<span class=\"gm-badge-new\" style=\"margin-left:4px;\">Nouveau</span>' : ''}</div>
-          <div style="margin-top:3px;">${classPill(effClass ? effClass.id : p.classId)}</div>
+          ${!canEdit ? `<div style="margin-top:3px;">${classPill(p.classId)}</div>` : ''}
         </div>
       </div>
       ${canEdit ? `
       <div class="gm-slot-classoverride">
-        <select data-action="slot-class-override" data-group="${g.id}" data-slot="${i}">
-          <option value="">Classe par défaut (${esc(c?c.name:'?')})</option>
-          ${CLASSES.map(cc => `<option value="${cc.id}" ${s.classOverride===cc.id?'selected':''}>${esc(cc.name)}</option>`).join('')}
+        <select data-action="player-class-select" data-player="${p.id}" style="${needsClass ? 'border-color:var(--new);color:var(--new);' : ''}">
+          <option value="" ${needsClass?'selected':''}>${needsClass ? '⚠ Classe requise —' : ''} Choisir une classe</option>
+          ${CLASSES.map(cc => `<option value="${cc.id}" ${p.classId===cc.id?'selected':''}>${esc(cc.icon||'')} ${esc(cc.name)}</option>`).join('')}
         </select>
       </div>` : ''}
       ${otherGroups.length ? `<div class="gm-slot-warning">⚠ Déjà dans « ${esc(otherGroups[0].name)} »</div>` : ''}
@@ -1248,6 +1167,7 @@ function renderPlayerModal(){
           <div class="gm-form-row">
             <label>Classe principale</label>
             <select data-field="classId" data-action="form-input">
+              <option value="" ${!f.classId?'selected':''}>— Choisir une classe —</option>
               ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
             </select>
           </div>
@@ -1265,14 +1185,6 @@ function renderPlayerModal(){
             <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
             <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
           </select>
-        </div>
-        <div class="gm-form-2col">
-          <div class="gm-form-row">
-            <label><input type="checkbox" ${f.pve?'checked':''} data-field="pve" data-action="form-checkbox" style="width:auto;margin-right:6px;">Disponible PvE</label>
-          </div>
-          <div class="gm-form-row">
-            <label><input type="checkbox" ${f.pvp?'checked':''} data-field="pvp" data-action="form-checkbox" style="width:auto;margin-right:6px;">Disponible PvP</label>
-          </div>
         </div>
 
         ${true ? `
@@ -1313,18 +1225,10 @@ function renderClassModal(){
         <h3>${MODAL.editingId ? 'Modifier la classe' : 'Nouvelle classe'}</h3>
         <div class="gm-form-row"><label>Nom *</label><input type="text" value="${esc(f.name)}" data-field="name" data-action="form-input"></div>
         <div class="gm-form-2col">
-          <div class="gm-form-row">
-            <label>Rôle</label>
-            <select data-field="role" data-action="form-input">
-              ${['Tank','Soigneur','DPS','Support'].map(r => `<option value="${r}" ${f.role===r?'selected':''}>${r}</option>`).join('')}
-            </select>
-          </div>
-          <div class="gm-form-row"><label>Ordre d'affichage</label><input type="number" value="${f.order}" data-field="order" data-action="form-input"></div>
-        </div>
-        <div class="gm-form-2col">
           <div class="gm-form-row"><label>Couleur</label><input type="color" value="${f.color}" data-field="color" data-action="form-input" style="height:38px;padding:4px;"></div>
           <div class="gm-form-row"><label>Icône (emoji, facultatif)</label><input type="text" value="${esc(f.icon)}" data-field="icon" data-action="form-input" placeholder="🛡️"></div>
         </div>
+        <div class="gm-form-row"><label>Ordre d'affichage</label><input type="number" value="${f.order}" data-field="order" data-action="form-input"></div>
         ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
         <div class="gm-modal-actions">
           <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
@@ -1375,16 +1279,16 @@ function bindEvents(){
       return;
     }
 
-    if (['nav','new-player','edit-player','delete-player','new-class','edit-class','delete-class',
+    if (['nav','new-player','edit-player','new-class','edit-class','delete-class',
          'new-group','duplicate-group','reset-group','delete-group','remove-slot','remove-sub','copy-group','save-group',
          'confirm-modal','save-player','save-class','fetch-discord','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
-         'sync-discord-role','clear-players'].includes(action)) {
+         'sync-discord-role'].includes(action)) {
       el.addEventListener('click', (e) => {
         handleClick(action, el, e);
       });
     }
-    if (['filter-search','filter-class','filter-status','filter-pve','filter-pvp','group-field','slot-select','slot-class-override','add-sub','form-input','form-checkbox'].includes(action)) {
+    if (['filter-search','filter-class','filter-status','group-field','slot-select','player-class-select','add-sub','form-input','form-checkbox'].includes(action)) {
       const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type==='date' || el.type==='time' || el.type==='color' || el.type==='number') ? 'change' : 'input';
       el.addEventListener(evt, (e) => handleInput(action, el, e));
     }
@@ -1400,7 +1304,6 @@ function handleClick(action, el, e){
     case 'nav': ACTIVE_TAB = el.getAttribute('data-tab'); MOBILE_NAV_OPEN = false; render(); break;
     case 'new-player': openPlayerModal(null); break;
     case 'edit-player': openPlayerModal(id); break;
-    case 'delete-player': requestDeletePlayer(id); break;
     case 'new-class': openClassModal(null); break;
     case 'edit-class': openClassModal(id); break;
     case 'delete-class': requestDeleteClass(id); break;
@@ -1421,7 +1324,6 @@ function handleClick(action, el, e){
     case 'save-discord-config': saveDiscordConfig(); break;
     case 'test-discord-config': testDiscordConfig(); break;
     case 'sync-discord-role': syncDiscordRole(); break;
-    case 'clear-players': requestClearPlayers(); break;
   }
 }
 
@@ -1431,11 +1333,9 @@ function handleInput(action, el, e){
     case 'filter-search': PLAYER_FILTERS.search = val; renderPreserveFocus(); break;
     case 'filter-class': PLAYER_FILTERS.classId = val; render(); break;
     case 'filter-status': PLAYER_FILTERS.status = val; render(); break;
-    case 'filter-pve': PLAYER_FILTERS.pve = val; render(); break;
-    case 'filter-pvp': PLAYER_FILTERS.pvp = val; render(); break;
     case 'group-field': updateGroupField(el.getAttribute('data-group'), el.getAttribute('data-field'), val); break;
     case 'slot-select': setSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
-    case 'slot-class-override': setSlotClassOverride(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
+    case 'player-class-select': setPlayerClass(el.getAttribute('data-player'), val); break;
     case 'add-sub': addSubstitute(el.getAttribute('data-group'), val); break;
     case 'form-input': MODAL.form[el.getAttribute('data-field')] = val; MODAL.error=''; if(document.activeElement===el){renderKeepInputFocus(el);} else render(); break;
     case 'form-checkbox': MODAL.form[el.getAttribute('data-field')] = el.checked; render(); break;
@@ -1468,3 +1368,5 @@ loadStateThenRender();
 
 })();
 </script>
+</body>
+</html>
