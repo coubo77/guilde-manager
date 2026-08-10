@@ -1,7 +1,7 @@
-# Backend Discord — Guilde Manager
+# Backend Discord — Wingmate
 
 Petit serveur qui interroge l'API Discord avec le token du bot, pour que
-« Guilde Manager » puisse récupérer automatiquement pseudo, nom d'affichage
+« Wingmate » puisse récupérer automatiquement pseudo, nom d'affichage
 et avatar d'un joueur à partir de son identifiant Discord.
 
 Le token du bot reste **uniquement** sur ce serveur — il n'est jamais exposé
@@ -10,7 +10,7 @@ au navigateur.
 ## 1. Créer le bot Discord
 
 1. Allez sur https://discord.com/developers/applications
-2. Cliquez sur **New Application**, donnez-lui un nom (ex. « Guilde Manager »).
+2. Cliquez sur **New Application**, donnez-lui un nom (ex. « Wingmate »).
 3. Dans l'onglet **Bot**, cliquez sur **Reset Token** puis copiez le token
    (vous ne pourrez plus le revoir ensuite — gardez-le en sécurité).
 4. Toujours dans **Bot**, activez si besoin l'intent **Server Members Intent**
@@ -51,8 +51,8 @@ de votre machine, il faudra remettre une protection (dites-le-moi si besoin).
 ## Synchroniser les joueurs depuis un rôle Discord
 
 Depuis l'onglet **Joueurs**, le bouton **🔄 Synchroniser (rôle
-Aion2)** importe automatiquement tous les membres du serveur Discord
-possédant le rôle **Aion2** (nom configurable via `DISCORD_SYNC_ROLE_NAME`
+Aion 2)** importe automatiquement tous les membres du serveur Discord
+possédant le rôle **Aion 2** (nom configurable via `DISCORD_SYNC_ROLE_NAME`
 dans `.env`) comme nouveaux joueurs — pseudo, avatar et identifiant Discord
 sont pré-remplis ; il ne reste qu'à choisir leur classe.
 
@@ -60,7 +60,7 @@ Prérequis :
 - `DISCORD_GUILD_ID` doit être renseigné dans `.env` (voir étape 2 plus haut).
 - Le **Server Members Intent** doit être activé dans le portail développeur
   Discord (onglet Bot de votre application) — voir étape 1.4.
-- Un rôle nommé exactement « Aion2 » (insensible à la casse) doit exister
+- Un rôle nommé exactement « Aion 2 » (insensible à la casse) doit exister
   sur le serveur.
 
 Les joueurs déjà importés (même identifiant Discord) ne sont pas dupliqués
@@ -76,7 +76,7 @@ npm start
 Vous devriez voir :
 
 ```
-Backend Discord de Guilde Manager en écoute sur http://localhost:3001
+Backend Discord de Wingmate en écoute sur http://localhost:3001
 ```
 
 Testez avec :
@@ -85,13 +85,13 @@ Testez avec :
 curl http://localhost:3001/api/discord/123456789012345678
 ```
 
-## 5. Brancher le front-end (Guilde Manager)
+## 5. Le site est déjà branché
 
-Dans l'application, sur l'écran de connexion admin ou dans le formulaire
-joueur, indiquez l'URL de ce backend (ex. `http://localhost:3001`) : voir la
-variable `DISCORD_API_BASE_URL` en haut du script de `guilde-manager.html`.
-En développement local, laissez `CORS_ORIGIN=*` ; en production, restreignez
-`CORS_ORIGIN` au domaine exact où l'application est hébergée.
+Depuis cette version, `server.js` sert directement le site (`public/index.html`)
+— une seule adresse pour tout (le site *et* l'API). Ouvrez simplement
+`http://localhost:3001` dans votre navigateur : plus besoin de configurer
+d'URL de backend, l'application détecte automatiquement qu'elle tourne sur
+le même serveur.
 
 ## Réponses de l'API
 
@@ -113,7 +113,7 @@ profil global Discord est tout de même renvoyé.
 Ce backend sauvegarde aussi automatiquement toutes les données de
 l'application (joueurs, classes, groupes) dans un fichier `data.json` créé
 à côté de `server.js`, dès que l'URL du backend est configurée dans
-« Guilde Manager ».
+« Wingmate ».
 
 - `GET /api/state` renvoie l'état actuel.
 - `PUT /api/state` enregistre un nouvel état (l'app l'appelle automatiquement
@@ -128,8 +128,76 @@ données sont rechargées depuis ce fichier — plus rien n'est perdu au F5.
 synchronisé) si vous voulez pouvoir restaurer vos données en cas de
 problème : il n'y a pas d'autre copie.
 
-## Déploiement
+## Déploiement en ligne avec un nom de domaine OVH
 
-Ce serveur peut être déployé sur n'importe quel hébergeur Node (Render,
-Railway, Fly.io, un VPS, etc.). Gardez toujours `DISCORD_BOT_TOKEN` en
-variable d'environnement secrète, jamais dans le code ou le dépôt Git.
+Vous n'avez besoin ni de VPS ni de compétences serveur : un hébergeur Node
+gratuit (Render) fait tourner `server.js` (qui sert aussi le site), et vous
+pointez votre domaine OVH dessus.
+
+### A. Mettre le code sur GitHub
+
+1. Créez un compte sur https://github.com si besoin.
+2. Créez un nouveau dépôt (ex. « guilde-manager »), et mettez-y tout le
+   contenu du dossier `discord-backend/` (avec son sous-dossier `public/`).
+   *Ne mettez jamais votre fichier `.env` dedans* — il est déjà exclu via
+   `.gitignore`.
+
+### B. Déployer sur Render
+
+1. Créez un compte sur https://render.com (gratuit) et connectez-le à GitHub.
+2. **New +** → **Web Service** → sélectionnez votre dépôt.
+3. Renseignez :
+   - **Build Command** : `npm install`
+   - **Start Command** : `npm start`
+   - **Instance Type** : Free
+4. Dans l'onglet **Environment**, ajoutez vos variables (les mêmes que dans
+   votre `.env` local) :
+   ```
+   DISCORD_BOT_TOKEN=...
+   DISCORD_GUILD_ID=...
+   DISCORD_SYNC_ROLE_NAME=Aion 2
+   CORS_ORIGIN=*
+   ```
+   *(pas besoin de `PORT`, Render le fournit automatiquement)*
+5. Cliquez sur **Create Web Service**. Après quelques minutes, Render vous
+   donne une adresse du type `https://guilde-manager.onrender.com` — ouvrez-la
+   pour vérifier que le site s'affiche bien.
+
+### C. Brancher votre domaine OVH
+
+1. Dans Render, ouvrez votre service → **Settings** → **Custom Domain** →
+   **Add Custom Domain**. Entrez le sous-domaine voulu, par exemple
+   `guilde.votredomaine.com`, et notez la valeur **CNAME** que Render affiche
+   (quelque chose comme `guilde-manager.onrender.com`).
+2. Connectez-vous sur https://www.ovh.com/manager/ → **Noms de domaine** →
+   votre domaine → onglet **Zone DNS**.
+3. **Ajouter une entrée** → type **CNAME** :
+   - Sous-domaine : `guilde`
+   - Cible : la valeur donnée par Render (avec un point `.` à la fin, ex.
+     `guilde-manager.onrender.com.`)
+4. Validez. La propagation DNS prend de quelques minutes à quelques heures.
+5. Une fois propagé, Render active automatiquement le HTTPS pour votre
+   domaine. Votre site est accessible sur `https://guilde.votredomaine.com`.
+
+### Remarque sur le plan gratuit de Render
+
+Sur le plan gratuit, le service se met en veille après une quinzaine de
+minutes sans visite, et met quelques secondes à se "réveiller" au premier
+accès suivant — sans conséquence pour un usage occasionnel entre membres de
+guilde. Pour un accès toujours instantané, un plan payant (quelques dollars/
+mois) ou un VPS reste une option, mais n'est pas nécessaire pour démarrer.
+
+### Rappel sécurité
+
+Ce backend est actuellement **sans mot de passe** (accès libre à tous ceux
+qui ont le lien). Une fois hébergé publiquement, n'importe qui trouvant
+l'URL pourra éditer ou supprimer des joueurs et des groupes — pas seulement
+les consulter. Si vous voulez remettre une protection minimale (mot de passe
+partagé, ou accès restreint), dites-le-moi, c'est rapide à rajouter.
+
+## Déploiement (autres options)
+
+Ce serveur peut aussi être déployé sur Railway, Fly.io, un VPS, etc. — la
+même logique s'applique (variables d'environnement, `npm install` puis
+`npm start`). Gardez toujours `DISCORD_BOT_TOKEN` en variable d'environnement
+secrète, jamais dans le code ou le dépôt Git.
