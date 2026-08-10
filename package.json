@@ -1,7 +1,7 @@
 {
   "name": "guilde-manager-discord-backend",
   "version": "1.0.0",
-  "description": "Petit serveur backend qui interroge l'API Discord avec le token du bot, pour l'application Guilde Manager.",
+  "description": "Petit serveur backend qui interroge l'API Discord avec le token du bot, pour l'application Wingmate.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

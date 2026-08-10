@@ -1,5 +1,5 @@
 /**
- * Backend "Guilde Manager" — récupération de profils Discord.
+ * Backend "Wingmate" — récupération de profils Discord.
  *
  * Ce serveur est le SEUL endroit où le token du bot Discord doit exister.
  * Il n'est jamais envoyé au navigateur. Le front-end appelle uniquement
@@ -222,5 +222,5 @@ app.get('/api/discord/:id', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend Discord de Guilde Manager en écoute sur http://localhost:${PORT}`);
+  console.log(`Backend Discord de Wingmate en écoute sur http://localhost:${PORT}`);
 });
