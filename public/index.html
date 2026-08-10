@@ -60,18 +60,11 @@
   flex-direction: column;
   gap: 22px;
 }
-.gm-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
-.gm-brand-crest {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(69,193,255,0.25), rgba(9,12,22,0.9));
-  border: 1px solid var(--border-strong);
-}
-.gm-brand-crest img { width: 100%; height: 100%; object-fit: cover; object-position: 35% 30%; display: block; }
-.gm-brand-text { font-size: 15px; font-weight: 600; line-height: 1.15; }
-.gm-brand-text span { display:block; font-size: 10px; color: var(--muted); font-family:'Inter'; font-weight:500; letter-spacing:0.08em; text-transform: uppercase; }
+.gm-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 2px; }
+.gm-brand-logo { width: 100%; max-width: 172px; height: auto; display: block; }
+.gm-brand-sub { font-size: 10px; color: var(--muted); font-family:'Inter'; font-weight:500; letter-spacing:0.08em; text-transform: uppercase; padding-left: 2px; }
+.gm-mobile-topbar .gm-brand { flex-direction: row; align-items: center; }
+.gm-mobile-topbar .gm-brand-logo { width: auto; max-width: none; height: 32px; }
 
 .gm-nav { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .gm-nav-item {
@@ -316,14 +309,14 @@
 const uid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 let CLASSES = [
-  { id: 'c1', name: 'Gladiateur', color: '#ff8f6b', icon: '⚔️', order: 1 },
-  { id: 'c2', name: 'Templier', color: '#4f9dff', icon: '🛡️', order: 2 },
-  { id: 'c3', name: 'Assassin', color: '#ff6b7a', icon: '🗡️', order: 3 },
-  { id: 'c4', name: 'Rôdeur', color: '#7ed957', icon: '🏹', order: 4 },
-  { id: 'c5', name: 'Sorcier', color: '#8b6bff', icon: '🔥', order: 5 },
-  { id: 'c6', name: 'Élémentaliste', color: '#45c1ff', icon: '🌪️', order: 6 },
-  { id: 'c7', name: 'Clerc', color: '#f6c552', icon: '✚', order: 7 },
-  { id: 'c8', name: 'Chanteur', color: '#ff6bd0', icon: '🎵', order: 8 },
+  { id: 'c1', name: 'Gladiateur', color: '#ff8f6b', icon: 'classes/gladiator.png', order: 1 },
+  { id: 'c2', name: 'Templier', color: '#4f9dff', icon: 'classes/templar.png', order: 2 },
+  { id: 'c3', name: 'Assassin', color: '#ff6b7a', icon: 'classes/assassin.png', order: 3 },
+  { id: 'c4', name: 'Rôdeur', color: '#7ed957', icon: 'classes/ranger.png', order: 4 },
+  { id: 'c5', name: 'Sorcier', color: '#8b6bff', icon: 'classes/sorcerer.png', order: 5 },
+  { id: 'c6', name: 'Spiritmaster', color: '#45c1ff', icon: 'classes/spiritmaster.png', order: 6 },
+  { id: 'c7', name: 'Clerc', color: '#f6c552', icon: 'classes/cleric.png', order: 7 },
+  { id: 'c8', name: 'Chanteur', color: '#ff6bd0', icon: 'classes/chanter.png', order: 8 },
 ];
 
 // Données de démonstration désactivées : la liste des joueurs est vide au premier
@@ -419,13 +412,22 @@ function avatarHtml(p, size){
   return `<div class="gm-avatar-fallback" style="width:${size}px;height:${size}px">${esc(initials)}</div>`;
 }
 
+function isImagePath(icon){
+  return !!icon && /\.(png|jpg|jpeg|webp|svg|gif)$/i.test(icon);
+}
+function classIconHtml(icon, size){
+  size = size || 14;
+  if (!icon) return '';
+  if (isImagePath(icon)) return `<img src="${esc(icon)}" alt="" style="width:${size}px;height:${size}px;object-fit:contain;vertical-align:-3px;">`;
+  return esc(icon);
+}
 function classPill(classId, overrideName){
   const c = cls(classId);
   if (!c && !overrideName) return `<span class="gm-class-pill" style="border-color:var(--border);color:var(--muted)">—</span>`;
   const name = overrideName || (c ? c.name : '?');
   const color = c ? c.color : '#888';
   return `<span class="gm-class-pill" style="border-color:${color}66;background:${color}1c;color:${color}">
-    <span class="gm-class-dot" style="background:${color}"></span>${esc(c ? c.icon || '' : '')} ${esc(name)}
+    ${c ? classIconHtml(c.icon, 15) : ''} ${esc(name)}
   </span>`;
 }
 
@@ -760,7 +762,7 @@ function render(){
 function renderShell(){
   return `
     <div class="gm-mobile-topbar">
-      <div class="gm-brand"><div class="gm-brand-crest"><img src="wingmate-crest.png" alt="Wingmate"></div><div class="gm-brand-text">Wingmate</div></div>
+      <div class="gm-brand"><img class="gm-brand-logo" src="wingmate-logo.png" alt="Wingmate"></div>
       <button class="gm-btn gm-btn-ghost gm-btn-sm" data-action="toggle-mobile-nav">☰ Menu</button>
     </div>
     <div class="gm-shell">
@@ -787,8 +789,8 @@ function renderSidebar(){
   return `
     <div class="gm-sidebar ${MOBILE_NAV_OPEN ? 'open' : ''}">
       <div class="gm-brand">
-        <div class="gm-brand-crest"><img src="wingmate-crest.png" alt="Wingmate"></div>
-        <div class="gm-brand-text">Wingmate<span>Gestion des groupes</span></div>
+        <img class="gm-brand-logo" src="wingmate-logo.png" alt="Wingmate">
+        <div class="gm-brand-sub">Gestion des groupes</div>
       </div>
       <div class="gm-nav">
         ${visible.map(i => `<div class="gm-nav-item ${ACTIVE_TAB===i.id?'active':''}" data-action="nav" data-tab="${i.id}"><span class="gm-nav-icon">${i.icon}</span>${esc(i.label)}</div>`).join('')}
@@ -856,8 +858,8 @@ function renderDashboard(){
   const maxClass = Math.max(1, ...byClass.map(x => x.count));
 
   return `
-    <div class="gm-panel" style="background-image:url('wingmate-logo.png');background-size:auto 145%;background-position:left -10px center;background-repeat:no-repeat;min-height:110px;margin-bottom:18px;position:relative;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:linear-gradient(90deg, transparent 40%, var(--panel-solid) 92%);"></div>
+    <div class="gm-panel" style="background-image:url('wingmate-logo.png');background-size:auto 100%;background-position:left center;background-repeat:no-repeat;height:150px;margin-bottom:18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg, transparent 45%, var(--panel-solid) 92%);"></div>
     </div>
     <div class="gm-stat-grid">
       ${statCard(total, 'Joueurs au total')}
@@ -869,7 +871,7 @@ function renderDashboard(){
       <h3 style="margin:0 0 12px;font-size:14px;">Répartition par classe</h3>
       ${byClass.map(x => `
         <div class="gm-bar-row">
-          <div class="gm-bar-label">${esc(x.c.icon||'')} ${esc(x.c.name)}</div>
+          <div class="gm-bar-label">${classIconHtml(x.c.icon, 16)} ${esc(x.c.name)}</div>
           <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxClass*100)}%;background:${x.c.color}"></div></div>
           <div class="gm-bar-value">${x.count}</div>
         </div>`).join('') || '<div class="gm-note">Aucune classe configurée.</div>'}
@@ -979,7 +981,7 @@ function renderClasses(){
           ${sorted.map(c => `
             <tr>
               <td class="gm-mono">${c.order}</td>
-              <td>${esc(c.icon||'')} ${esc(c.name)}</td>
+              <td>${classIconHtml(c.icon, 20)} ${esc(c.name)}</td>
               <td><span class="gm-color-swatch" style="background:${c.color}"></span> <span class="gm-mono" style="color:var(--muted)">${c.color}</span></td>
               <td style="text-align:right;white-space:nowrap;">
                 <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-class" data-id="${c.id}">Modifier</button>
@@ -1108,7 +1110,7 @@ function renderSlot(g, s, i){
       <div class="gm-slot-classoverride">
         <select data-action="player-class-select" data-player="${p.id}" style="${needsClass ? 'border-color:var(--new);color:var(--new);' : ''}">
           <option value="" ${needsClass?'selected':''}>${needsClass ? '⚠ Classe requise —' : ''} Choisir une classe</option>
-          ${CLASSES.map(cc => `<option value="${cc.id}" ${p.classId===cc.id?'selected':''}>${esc(cc.icon||'')} ${esc(cc.name)}</option>`).join('')}
+          ${CLASSES.map(cc => `<option value="${cc.id}" ${p.classId===cc.id?'selected':''}>${esc(cc.name)}</option>`).join('')}
         </select>
       </div>` : ''}
       ${otherGroups.length ? `<div class="gm-slot-warning">⚠ Déjà dans « ${esc(otherGroups[0].name)} »</div>` : ''}
@@ -1226,7 +1228,7 @@ function renderClassModal(){
         <div class="gm-form-row"><label>Nom *</label><input type="text" value="${esc(f.name)}" data-field="name" data-action="form-input"></div>
         <div class="gm-form-2col">
           <div class="gm-form-row"><label>Couleur</label><input type="color" value="${f.color}" data-field="color" data-action="form-input" style="height:38px;padding:4px;"></div>
-          <div class="gm-form-row"><label>Icône (emoji, facultatif)</label><input type="text" value="${esc(f.icon)}" data-field="icon" data-action="form-input" placeholder="🛡️"></div>
+          <div class="gm-form-row"><label>Icône (emoji ou chemin d'image, facultatif)</label><input type="text" value="${esc(f.icon)}" data-field="icon" data-action="form-input" placeholder="🛡️ ou classes/monicone.png"></div>
         </div>
         <div class="gm-form-row"><label>Ordre d'affichage</label><input type="number" value="${f.order}" data-field="order" data-action="form-input"></div>
         ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
