@@ -1,0 +1,1470 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+.gm-root {
+  --bg: #090c16;
+  --bg-2: #0d1220;
+  --panel: rgba(24, 30, 51, 0.62);
+  --panel-solid: #141a2e;
+  --border: rgba(139, 130, 255, 0.16);
+  --border-strong: rgba(139, 130, 255, 0.32);
+  --violet: #8b6bff;
+  --blue: #45c1ff;
+  --text: #e7e9f7;
+  --muted: #8790ac;
+  --muted-2: #5c6482;
+  --tank: #4f9dff;
+  --healer: #35d29a;
+  --dps: #ff6b7a;
+  --support: #f6c552;
+  --danger: #ef4d5f;
+  --success: #35d29a;
+  --new: #ffb84f;
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(1200px 800px at 15% -10%, rgba(139,107,255,0.14), transparent 60%),
+              radial-gradient(1000px 700px at 100% 10%, rgba(69,193,255,0.08), transparent 55%),
+              var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  position: relative;
+}
+.gm-root *, .gm-root *:before, .gm-root *:after { box-sizing: border-box; }
+.gm-root h1, .gm-root h2, .gm-root h3, .gm-root .gm-font-display {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.02em;
+}
+.gm-mono { font-family: 'JetBrains Mono', monospace; }
+
+.gm-shell { display: flex; min-height: 100vh; }
+
+/* ---- Sidebar ---- */
+.gm-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(20,26,46,0.9), rgba(13,18,32,0.9));
+  border-right: 1px solid var(--border);
+  padding: 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.gm-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.gm-brand-crest {
+  width: 34px; height: 34px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(135deg, var(--violet), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; color: #0a0e1a;
+  flex-shrink: 0;
+}
+.gm-brand-text { font-size: 15px; font-weight: 600; line-height: 1.15; }
+.gm-brand-text span { display:block; font-size: 10px; color: var(--muted); font-family:'Inter'; font-weight:500; letter-spacing:0.08em; text-transform: uppercase; }
+
+.gm-nav { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.gm-nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  color: var(--muted); font-size: 13.5px; font-weight: 500;
+  cursor: pointer; border: 1px solid transparent; transition: all .15s ease;
+  user-select: none;
+}
+.gm-nav-item:hover { background: rgba(139,107,255,0.08); color: var(--text); }
+.gm-nav-item.active {
+  background: rgba(139,107,255,0.14);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--violet);
+}
+.gm-nav-icon { width: 16px; text-align:center; opacity: 0.9; }
+
+.gm-role-box {
+  margin-top: auto;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+.gm-role-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.gm-role-switch { display: flex; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 3px; gap: 3px; }
+.gm-role-switch button {
+  flex: 1; border: none; background: transparent; color: var(--muted);
+  padding: 7px 4px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  font-family: 'Inter'; transition: all .15s ease;
+}
+.gm-role-switch button.active { background: linear-gradient(135deg, var(--violet), var(--blue)); color: #060810; }
+
+/* ---- Main ---- */
+.gm-main { flex: 1; min-width: 0; padding: 26px 30px 60px; }
+.gm-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px;}
+.gm-page-title { font-size: 22px; font-weight: 600; }
+.gm-page-sub { color: var(--muted); font-size: 13px; margin-top: 3px; font-family:'Inter'; }
+
+.gm-search { position: relative; }
+.gm-search input {
+  background: var(--panel-solid); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 14px 9px 32px; color: var(--text); font-size: 13px; width: 230px; outline: none;
+  font-family: 'Inter';
+}
+.gm-search input:focus { border-color: var(--border-strong); }
+.gm-search:before { content: '⚲'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%) rotate(90deg); color: var(--muted); font-size: 12px; }
+
+.gm-btn {
+  border: 1px solid var(--border-strong); background: rgba(139,107,255,0.1); color: var(--text);
+  padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'Inter'; display: inline-flex; align-items: center; gap: 6px; transition: all .15s ease;
+  white-space: nowrap;
+}
+.gm-btn:hover { background: rgba(139,107,255,0.2); }
+.gm-btn-primary { background: linear-gradient(135deg, var(--violet), var(--blue)); border: none; color: #060810; }
+.gm-btn-primary:hover { filter: brightness(1.08); }
+.gm-btn-danger { background: rgba(239,77,95,0.12); border-color: rgba(239,77,95,0.4); color: #ff8b96; }
+.gm-btn-danger:hover { background: rgba(239,77,95,0.22); }
+.gm-btn-ghost { background: transparent; border-color: var(--border); }
+.gm-btn-sm { padding: 6px 11px; font-size: 12px; border-radius: 8px; }
+.gm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---- Panels / Cards ---- */
+.gm-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  backdrop-filter: blur(6px);
+}
+
+/* ---- Dashboard ---- */
+.gm-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 20px; }
+.gm-stat-card { padding: 16px; }
+.gm-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 600; background: linear-gradient(135deg, #fff, var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.gm-stat-label { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.gm-dash-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 900px) { .gm-dash-row { grid-template-columns: 1fr; } }
+.gm-bar-row { display: flex; align-items: center; gap: 10px; margin: 9px 0; font-size: 12.5px; }
+.gm-bar-label { width: 110px; flex-shrink: 0; color: var(--muted); }
+.gm-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; }
+.gm-bar-fill { height: 100%; border-radius: 6px; }
+.gm-bar-value { width: 26px; text-align: right; font-family: 'JetBrains Mono'; color: var(--text); }
+
+/* ---- Class badge / pill ---- */
+.gm-class-pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 6px;
+  border-radius: 20px; font-size: 11.5px; font-weight: 600; border: 1px solid;
+  white-space: nowrap;
+}
+.gm-class-dot { width: 7px; height: 7px; border-radius: 50%; }
+.gm-badge-new {
+  background: rgba(255,184,79,0.14); color: var(--new); border: 1px solid rgba(255,184,79,0.4);
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.03em;
+}
+.gm-role-tag { font-size: 10px; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.gm-avail-dot { width: 8px; height: 8px; border-radius: 50%; display:inline-block; margin-right: 5px; }
+
+/* ---- Player cards grid ---- */
+.gm-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.gm-select {
+  background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 10px; border-radius: 9px; font-size: 12.5px; font-family: 'Inter'; outline: none;
+}
+.gm-players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.gm-player-card { padding: 14px; position: relative; transition: transform .15s ease, border-color .15s ease; }
+.gm-player-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.gm-player-top { display: flex; gap: 10px; align-items: flex-start; }
+.gm-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
+  border: 2px solid var(--border-strong); background: #222840;
+}
+.gm-avatar-fallback {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, var(--violet), var(--blue)); font-weight: 700; color: #0a0e1a; font-family:'Cinzel'; border: 2px solid var(--border-strong);
+}
+.gm-player-names { flex: 1; min-width: 0; }
+.gm-player-pseudo { font-weight: 600; font-size: 14.5px; }
+.gm-player-discord { color: var(--muted); font-size: 11.5px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-player-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.gm-player-avail { display: flex; gap: 12px; margin-top: 10px; font-size: 11.5px; color: var(--muted); }
+.gm-player-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+/* ---- Group slot ---- */
+.gm-group-card { padding: 16px; margin-bottom: 18px; }
+.gm-group-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.gm-group-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.gm-group-name { font-family: 'Cinzel'; font-size: 16px; font-weight: 600; background: transparent; border: none; color: var(--text); outline: none; border-bottom: 1px dashed transparent; }
+.gm-group-name:focus { border-bottom: 1px dashed var(--border-strong); }
+.gm-group-meta-inputs { display: flex; gap: 8px; flex-wrap: wrap; }
+.gm-group-meta-inputs input {
+  background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 9px; border-radius: 8px; font-size: 12px; outline: none; font-family:'Inter';
+}
+.gm-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+@media (max-width: 900px) { .gm-slots { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .gm-slots { grid-template-columns: 1fr; } }
+
+.gm-slot {
+  border: 1.5px dashed var(--border); border-radius: 12px; padding: 10px; min-height: 128px;
+  display: flex; flex-direction: column; justify-content: space-between; position: relative;
+  background: rgba(255,255,255,0.015);
+}
+.gm-slot.filled { border-style: solid; border-color: var(--border-strong); background: rgba(139,107,255,0.05); }
+.gm-slot-num { font-size: 10px; color: var(--muted-2); font-family:'JetBrains Mono'; margin-bottom: 6px; }
+.gm-slot-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
+.gm-slot select {
+  width: 100%; background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
+  padding: 7px 8px; border-radius: 8px; font-size: 12px; outline: none; font-family:'Inter';
+}
+.gm-slot-filled-body { display: flex; align-items: center; gap: 8px; }
+.gm-slot-filled-body img, .gm-slot-filled-body .gm-avatar-fallback { width: 34px; height: 34px; font-size: 12px; }
+.gm-slot-remove { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height:1; padding: 2px;}
+.gm-slot-remove:hover { color: var(--danger); }
+.gm-slot-classoverride { margin-top: 6px; }
+.gm-slot-classoverride select { padding: 4px 6px; font-size: 10.5px; }
+.gm-slot-warning { font-size: 10px; color: var(--new); margin-top: 5px; display:flex; align-items:center; gap:3px; }
+
+.gm-subs-title { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 16px 0 8px; }
+.gm-subs-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.gm-sub-chip { display: flex; align-items: center; gap: 6px; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px 4px 4px; font-size: 12px; }
+.gm-sub-chip img, .gm-sub-chip .gm-avatar-fallback { width: 22px; height: 22px; font-size: 9px; }
+.gm-sub-chip button { background: none; border: none; color: var(--muted); cursor: pointer; margin-left: 2px; }
+.gm-add-sub select { background: var(--panel-solid); border: 1px dashed var(--border-strong); color: var(--muted); padding: 6px 10px; border-radius: 20px; font-size: 12px; }
+
+.gm-balance-row { display: flex; gap: 16px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+.gm-balance-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.gm-balance-count { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 14px; }
+.gm-alert-chip { background: rgba(239,77,95,0.13); border: 1px solid rgba(239,77,95,0.4); color: #ff8b96; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
+.gm-group-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+
+/* ---- Modal ---- */
+.gm-modal-overlay { position: fixed; inset: 0; background: rgba(4,6,12,0.72); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.gm-modal { background: var(--panel-solid); border: 1px solid var(--border-strong); border-radius: 16px; padding: 24px; max-width: 480px; width: 100%; max-height: 88vh; overflow-y: auto; }
+.gm-modal h3 { margin: 0 0 16px; font-size: 17px; }
+.gm-form-row { margin-bottom: 13px; }
+.gm-form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.gm-form-row input, .gm-form-row select {
+  width: 100%; background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 11px; border-radius: 9px; font-size: 13px; outline: none; font-family:'Inter';
+}
+.gm-form-row input:focus, .gm-form-row select:focus { border-color: var(--border-strong); }
+.gm-form-error { color: var(--danger); font-size: 11.5px; margin-top: 4px; }
+.gm-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gm-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.gm-discord-row { display: flex; gap: 8px; align-items: flex-end; }
+.gm-discord-row > div:first-child { flex: 1; }
+.gm-discord-preview { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; background: rgba(139,107,255,0.06); border-radius: 10px; border: 1px solid var(--border); }
+.gm-discord-status { font-size: 11.5px; padding: 6px 10px; border-radius: 8px; margin-top: 8px; }
+.gm-discord-status.ok { background: rgba(53,210,154,0.12); color: var(--success); }
+.gm-discord-status.err { background: rgba(239,77,95,0.12); color: #ff8b96; }
+.gm-discord-status.loading { background: rgba(69,193,255,0.1); color: var(--blue); }
+
+/* ---- Toast ---- */
+.gm-toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 2000; }
+.gm-toast { background: var(--panel-solid); border: 1px solid var(--border-strong); border-left: 3px solid var(--success); border-radius: 10px; padding: 11px 16px; font-size: 12.5px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); animation: gm-toast-in .2s ease; }
+@keyframes gm-toast-in { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform:translateY(0);} }
+
+/* ---- Empty state ---- */
+.gm-empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+.gm-empty-crest { width: 50px; height: 50px; margin: 0 auto 14px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); background: rgba(139,107,255,0.15); border: 1px dashed var(--border-strong); }
+
+/* ---- Table (players list alt / classes admin) ---- */
+.gm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gm-table th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.gm-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.gm-table tr:hover td { background: rgba(255,255,255,0.02); }
+.gm-color-swatch { width: 16px; height: 16px; border-radius: 5px; display: inline-block; vertical-align: middle; }
+
+.gm-tabs-sub { display: flex; gap: 6px; margin-bottom: 18px; }
+.gm-tabs-sub button {
+  background: var(--panel-solid); border: 1px solid var(--border); color: var(--muted);
+  padding: 7px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family:'Inter';
+}
+.gm-tabs-sub button.active { color: var(--text); border-color: var(--border-strong); background: rgba(139,107,255,0.14); }
+
+.gm-note { font-size: 11.5px; color: var(--muted-2); margin-top: 4px; line-height: 1.5; }
+.gm-scrollx { overflow-x: auto; }
+
+/* Mobile sidebar collapse */
+.gm-mobile-topbar { display: none; }
+@media (max-width: 780px) {
+  .gm-shell { flex-direction: column; }
+  .gm-sidebar { display: none; }
+  .gm-sidebar.open { display: flex; position: fixed; z-index: 500; top:0; left:0; bottom:0; }
+  .gm-mobile-topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .gm-main { padding: 16px; }
+}
+</style>
+
+<div class="gm-root" id="gm-app"></div>
+
+<script>
+(function(){
+
+/* =========================================================
+   DONNÉES DE DÉMONSTRATION
+========================================================= */
+
+const uid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+let CLASSES = [
+  { id: 'c1', name: 'Guerrier', role: 'Tank', color: '#4f9dff', icon: '🛡️', order: 1 },
+  { id: 'c2', name: 'Paladin', role: 'Tank', color: '#6ea8ff', icon: '⚔️', order: 2 },
+  { id: 'c3', name: 'Prêtre', role: 'Soigneur', color: '#35d29a', icon: '✚', order: 3 },
+  { id: 'c4', name: 'Druide', role: 'Soigneur', color: '#5fe0b0', icon: '🌿', order: 4 },
+  { id: 'c5', name: 'Mage', role: 'DPS', color: '#ff6b7a', icon: '🔥', order: 5 },
+  { id: 'c6', name: 'Chasseur', role: 'DPS', color: '#ff8f6b', icon: '🏹', order: 6 },
+  { id: 'c7', name: 'Voleur', role: 'DPS', color: '#ff6bd0', icon: '🗡️', order: 7 },
+  { id: 'c8', name: 'Barde', role: 'Support', color: '#f6c552', icon: '🎵', order: 8 },
+];
+
+function mkPlayer(pseudo, classId, secondClassId, status, discordId, discordUsername, avatarSeed, pve, pvp, synced) {
+  return {
+    id: uid('p'), pseudo, classId, secondClassId: secondClassId || '', status,
+    discordId, discordUsername, discordAvatar: avatarSeed ? `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}` : '',
+    discordSynced: !!synced, pve, pvp,
+  };
+}
+
+// Données de démonstration désactivées : la liste des joueurs est vide au premier
+// démarrage. Utilisez la synchronisation Discord (rôle configuré, "Aion 2" par défaut)
+// ou le formulaire "Nouveau joueur" pour la peupler.
+let PLAYERS = [];
+
+function mkGroup(type, name, activity, date, time, slotPseudos, subPseudos) {
+  const findId = (pseudo) => { const p = PLAYERS.find(pl => pl.pseudo === pseudo); return p ? p.id : null; };
+  const slots = [0,1,2,3,4].map(i => ({ playerId: slotPseudos[i] ? findId(slotPseudos[i]) : null, classOverride: '' }));
+  return { id: uid('g'), type, name, activity, date, time, slots, substitutes: (subPseudos||[]).map(findId).filter(Boolean) };
+}
+
+let GROUPS = [];
+
+let ACTIVE_TAB = 'dashboard';
+let ACTIVE_GROUP_SUBTAB = { pve: null, pvp: null };
+let TOASTS = [];
+let MODAL = null; // {type, ...}
+let PLAYER_FILTERS = { search: '', classId: '', status: '', pve: '', pvp: '' };
+let MOBILE_NAV_OPEN = false;
+// URL du backend Discord (ex. http://localhost:3001). Voir discord-backend/README.md.
+// Reste en mémoire pour la session ; laissez vide pour rester en mode démonstration.
+// Quand le site est servi par le backend lui-même (déployé en ligne, sur
+// n'importe quel domaine), on utilise automatiquement le même domaine —
+// aucune configuration nécessaire. En local, si vous ouvrez le fichier
+// directement (double-clic, protocole "file://"), on utilise localhost:3001.
+let DISCORD_API_BASE_URL = (typeof window !== 'undefined' && window.location && window.location.protocol !== 'file:')
+  ? window.location.origin
+  : 'http://localhost:3001';
+
+/* =========================================================
+   UTILITAIRES
+========================================================= */
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function cls(id){ return CLASSES.find(c => c.id === id); }
+function player(id){ return PLAYERS.find(p => p.id === id); }
+// Accès libre : plus de distinction Admin/Joueur, tout le monde a les mêmes droits.
+function isAdmin(){ return true; }
+
+function toast(msg, tone){
+  const id = uid('t');
+  TOASTS.push({ id, msg, tone: tone || 'success' });
+  render();
+  setTimeout(() => { TOASTS = TOASTS.filter(t => t.id !== id); render(); }, 3000);
+}
+
+/* ---- Sauvegarde automatique côté backend (fichier data.json local) ---- */
+let SAVE_TIMER = null;
+let LAST_SAVE_STATUS = null; // 'ok' | 'error' | null
+function scheduleSave(){
+  if (!DISCORD_API_BASE_URL) return;
+  clearTimeout(SAVE_TIMER);
+  SAVE_TIMER = setTimeout(() => {
+    fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ players: PLAYERS, classes: CLASSES, groups: GROUPS }),
+    })
+      .then(r => { LAST_SAVE_STATUS = r.ok ? 'ok' : 'error'; })
+      .catch(() => { LAST_SAVE_STATUS = 'error'; });
+  }, 600);
+}
+
+function loadStateThenRender(){
+  if (!DISCORD_API_BASE_URL) { render(); return; }
+  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`)
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      const hasSaved = data && ((data.players && data.players.length) || (data.classes && data.classes.length) || (data.groups && data.groups.length));
+      if (hasSaved) {
+        PLAYERS = data.players || [];
+        CLASSES = data.classes || CLASSES;
+        GROUPS = data.groups || [];
+        LAST_SAVE_STATUS = 'ok';
+      } else {
+        // Rien de sauvegardé encore : on garde les données de démonstration
+        // et on les envoie tout de suite au backend pour initialiser data.json.
+        scheduleSave();
+      }
+      render();
+    })
+    .catch(() => { LAST_SAVE_STATUS = 'error'; render(); });
+}
+
+function avatarHtml(p, size){
+  size = size || 34;
+  if (p && p.discordAvatar) {
+    return `<img class="gm-avatar" style="width:${size}px;height:${size}px" src="${esc(p.discordAvatar)}" alt="${esc(p.pseudo)}">`;
+  }
+  const initials = p ? p.pseudo.slice(0,2).toUpperCase() : '?';
+  return `<div class="gm-avatar-fallback" style="width:${size}px;height:${size}px">${esc(initials)}</div>`;
+}
+
+function classPill(classId, overrideName){
+  const c = cls(classId);
+  if (!c && !overrideName) return `<span class="gm-class-pill" style="border-color:var(--border);color:var(--muted)">—</span>`;
+  const name = overrideName || (c ? c.name : '?');
+  const color = c ? c.color : '#888';
+  return `<span class="gm-class-pill" style="border-color:${color}66;background:${color}1c;color:${color}">
+    <span class="gm-class-dot" style="background:${color}"></span>${esc(c ? c.icon || '' : '')} ${esc(name)}
+  </span>`;
+}
+
+function roleColor(role){
+  return { Tank: 'var(--tank)', Soigneur: 'var(--healer)', DPS: 'var(--dps)', Support: 'var(--support)' }[role] || '#888';
+}
+
+/* group membership warning: is player in another group of same type? */
+function groupsContainingPlayer(playerId, type, excludeGroupId){
+  return GROUPS.filter(g => g.type === type && g.id !== excludeGroupId &&
+    (g.slots.some(s => s.playerId === playerId) || g.substitutes.includes(playerId)));
+}
+
+/* =========================================================
+   ACTIONS — JOUEURS
+========================================================= */
+
+function openPlayerModal(playerId){
+  const existing = playerId ? player(playerId) : null;
+  MODAL = {
+    type: 'player',
+    editingId: playerId || null,
+    form: existing ? { ...existing } : {
+      pseudo: '', classId: CLASSES[0] ? CLASSES[0].id : '', secondClassId: '', status: 'Nouveau joueur',
+      discordId: '', discordUsername: '', discordAvatar: '', discordSynced: false, pve: true, pvp: true,
+    },
+    error: '',
+    discordStatus: null,
+  };
+  render();
+}
+
+function savePlayerForm(){
+  const f = MODAL.form;
+  const pseudo = (f.pseudo || '').trim();
+  if (!pseudo) { MODAL.error = 'Le pseudo en jeu est obligatoire.'; render(); return; }
+  const dup = PLAYERS.find(p => p.pseudo.toLowerCase() === pseudo.toLowerCase() && p.id !== MODAL.editingId);
+  if (dup) { MODAL.error = 'Ce pseudo en jeu est déjà utilisé par un autre joueur.'; render(); return; }
+  if (MODAL.editingId) {
+    const idx = PLAYERS.findIndex(p => p.id === MODAL.editingId);
+    PLAYERS[idx] = { ...PLAYERS[idx], ...f, pseudo };
+    toast('Profil mis à jour.');
+  } else {
+    PLAYERS.push({ id: uid('p'), ...f, pseudo });
+    toast('Joueur ajouté à la guilde.');
+  }
+  MODAL = null;
+  render();
+}
+
+function requestDeletePlayer(playerId){
+  const p = player(playerId);
+  MODAL = { type: 'confirm', title: 'Supprimer ce joueur ?',
+    message: `« ${p.pseudo} » sera retiré de la guilde et de tous les groupes. Cette action est irréversible.`,
+    onConfirm: () => {
+      PLAYERS = PLAYERS.filter(pl => pl.id !== playerId);
+      GROUPS.forEach(g => {
+        g.slots.forEach(s => { if (s.playerId === playerId) s.playerId = null; });
+        g.substitutes = g.substitutes.filter(id => id !== playerId);
+      });
+      toast('Joueur supprimé.', 'danger');
+      MODAL = null; render();
+    }
+  };
+  render();
+}
+
+function requestClearPlayers(){
+  MODAL = { type: 'confirm', title: 'Vider la liste des joueurs ?',
+    message: `Tous les joueurs (${PLAYERS.length}) et tous les groupes PvE/PvP seront supprimés, car les groupes référencent ces joueurs. Cette action est irréversible.`,
+    onConfirm: () => {
+      PLAYERS = [];
+      GROUPS = [];
+      toast('Liste des joueurs et groupes vidée.', 'danger');
+      MODAL = null; render();
+    }
+  };
+  render();
+}
+
+function uniquePseudo(base){
+  let candidate = base;
+  let i = 2;
+  while (PLAYERS.find(p => p.pseudo.toLowerCase() === candidate.toLowerCase())) {
+    candidate = `${base} (${i})`; i++;
+  }
+  return candidate;
+}
+
+function syncDiscordRole(){
+  if (!DISCORD_API_BASE_URL) { toast('Configurez d\'abord le backend Discord (⚙).', 'danger'); return; }
+  toast('Synchronisation avec Discord en cours…');
+  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/discord/role-members?role=${encodeURIComponent('Aion 2')}`)
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const messages = {
+          guild_not_configured: 'DISCORD_GUILD_ID doit être renseigné dans le fichier .env du backend.',
+          role_not_found: 'Aucun rôle « Aion 2 » trouvé sur votre serveur Discord.',
+          forbidden: 'Autorisation insuffisante : activez le "Server Members Intent" pour le bot.',
+          unauthorized: 'Token du bot Discord invalide.',
+          connection_error: 'Problème de connexion à Discord.',
+        };
+        toast(data.message || messages[data.error] || 'Échec de la synchronisation.', 'danger');
+        return;
+      }
+      let added = 0, skipped = 0;
+      (data.members || []).forEach(m => {
+        if (PLAYERS.find(p => p.discordId === m.id)) { skipped++; return; }
+        PLAYERS.push({
+          id: uid('p'),
+          pseudo: uniquePseudo(m.nickname || m.displayName || m.username),
+          classId: CLASSES[0] ? CLASSES[0].id : '',
+          secondClassId: '', status: 'Nouveau joueur',
+          discordId: m.id, discordUsername: m.username, discordAvatar: m.avatarUrl,
+          discordSynced: true, pve: true, pvp: true,
+        });
+        added++;
+      });
+      toast(`Synchronisation terminée : ${added} joueur(s) importé(s), ${skipped} déjà présent(s).`);
+      render();
+    })
+    .catch(() => toast('Impossible de joindre le backend Discord.', 'danger'));
+}
+
+function simulateDiscordFetch(){
+  const id = (MODAL.form.discordId || '').trim();
+  if (!/^\d{17,20}$/.test(id)) {
+    MODAL.discordStatus = { tone: 'err', text: 'Identifiant Discord invalide (doit être un nombre de 17 à 20 chiffres).' };
+    render(); return;
+  }
+
+  if (DISCORD_API_BASE_URL) {
+    MODAL.discordStatus = { tone: 'loading', text: 'Connexion au backend Discord…' };
+    render();
+    fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/discord/${id}`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const messages = {
+            invalid_id: 'Identifiant Discord invalide.',
+            not_found: 'Utilisateur introuvable sur Discord.',
+            unauthorized: 'Autorisation insuffisante : le token du bot est invalide.',
+            server_misconfigured: 'Le backend n\'a pas de token de bot configuré.',
+            connection_error: 'Problème de connexion à Discord.',
+          };
+          MODAL.discordStatus = { tone: 'err', text: data.message || messages[data.error] || 'Erreur inconnue lors de la récupération du profil.' };
+          render(); return;
+        }
+        MODAL.form.discordUsername = data.username;
+        MODAL.form.discordAvatar = data.avatarUrl;
+        MODAL.form.discordSynced = true;
+        let statusText = 'Profil Discord récupéré avec succès.';
+        if (data.nickname) statusText += ` Surnom sur le serveur : ${data.nickname}.`;
+        if (data.guildWarning === 'bot_not_in_guild_or_member_not_found') statusText += ' (Le bot semble absent du serveur configuré — profil global utilisé.)';
+        MODAL.discordStatus = { tone: 'ok', text: statusText };
+        render();
+      })
+      .catch(() => {
+        MODAL.discordStatus = { tone: 'err', text: 'Impossible de joindre le backend Discord. Vérifiez qu\'il est démarré et que l\'URL est correcte.' };
+        render();
+      });
+    return;
+  }
+
+  // Aucun backend configuré : mode démonstration (données simulées, aucun appel réseau réel).
+  MODAL.discordStatus = { tone: 'loading', text: 'Mode démonstration — simulation de la connexion au bot Discord…' };
+  render();
+  setTimeout(() => {
+    const found = PLAYERS.find(p => p.discordId === id);
+    if (found) {
+      MODAL.form.discordUsername = found.discordUsername;
+      MODAL.form.discordAvatar = found.discordAvatar;
+      MODAL.form.discordSynced = true;
+      MODAL.discordStatus = { tone: 'ok', text: 'Profil Discord récupéré (données de démonstration — configurez un backend pour des données réelles).' };
+    } else if (id.endsWith('0')) {
+      MODAL.discordStatus = { tone: 'err', text: 'Utilisateur introuvable sur le serveur Discord (démonstration).' };
+    } else {
+      const seed = 'u' + id.slice(-4);
+      MODAL.form.discordUsername = 'joueur_' + id.slice(-4);
+      MODAL.form.discordAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+      MODAL.form.discordSynced = true;
+      MODAL.discordStatus = { tone: 'ok', text: 'Profil Discord récupéré (données de démonstration — configurez un backend pour des données réelles).' };
+    }
+    render();
+  }, 700);
+}
+
+function openDiscordConfigModal(){
+  MODAL = { type: 'discordConfig', form: { url: DISCORD_API_BASE_URL }, status: null };
+  render();
+}
+function saveDiscordConfig(){
+  DISCORD_API_BASE_URL = (MODAL.form.url || '').trim();
+  toast(DISCORD_API_BASE_URL ? 'Backend Discord configuré.' : 'Retour au mode démonstration.');
+  MODAL = null; render();
+}
+function testDiscordConfig(){
+  const url = (MODAL.form.url || '').trim();
+  if (!url) { MODAL.status = { tone: 'err', text: 'Renseignez une URL avant de tester.' }; render(); return; }
+  MODAL.status = { tone: 'loading', text: 'Test de connexion…' };
+  render();
+  fetch(`${url.replace(/\/$/, '')}/api/health`)
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        MODAL.status = { tone: 'ok', text: `Connexion réussie. Token du bot ${data.botTokenConfigured ? 'configuré' : 'MANQUANT côté serveur'}.` };
+      } else {
+        MODAL.status = { tone: 'err', text: 'Le serveur a répondu mais de façon inattendue.' };
+      }
+      render();
+    })
+    .catch(() => { MODAL.status = { tone: 'err', text: 'Impossible de joindre ce backend. Vérifiez l\'URL et qu\'il est démarré.' }; render(); });
+}
+
+/* =========================================================
+   ACTIONS — CLASSES
+========================================================= */
+
+function openClassModal(classId){
+  const existing = classId ? cls(classId) : null;
+  MODAL = {
+    type: 'class', editingId: classId || null,
+    form: existing ? { ...existing } : { name: '', role: 'DPS', color: '#8b6bff', icon: '', order: CLASSES.length + 1 },
+    error: '',
+  };
+  render();
+}
+function saveClassForm(){
+  const f = MODAL.form;
+  if (!f.name || !f.name.trim()) { MODAL.error = 'Le nom de la classe est obligatoire.'; render(); return; }
+  if (MODAL.editingId) {
+    const idx = CLASSES.findIndex(c => c.id === MODAL.editingId);
+    CLASSES[idx] = { ...CLASSES[idx], ...f, order: Number(f.order) || CLASSES[idx].order };
+    toast('Classe mise à jour.');
+  } else {
+    CLASSES.push({ id: uid('c'), ...f, order: Number(f.order) || CLASSES.length + 1 });
+    toast('Classe créée.');
+  }
+  CLASSES.sort((a,b) => a.order - b.order);
+  MODAL = null; render();
+}
+function requestDeleteClass(classId){
+  MODAL = { type: 'confirm', title: 'Supprimer cette classe ?',
+    message: "Les joueurs assignés à cette classe conserveront la référence mais elle n'apparaîtra plus dans les listes.",
+    onConfirm: () => { CLASSES = CLASSES.filter(c => c.id !== classId); toast('Classe supprimée.', 'danger'); MODAL = null; render(); }
+  };
+  render();
+}
+
+/* =========================================================
+   ACTIONS — GROUPES
+========================================================= */
+
+function createGroup(type){
+  const count = GROUPS.filter(g => g.type === type).length;
+  const g = { id: uid('g'), type, name: 'Groupe ' + (count + 1), activity: '', date: '', time: '',
+    slots: [0,1,2,3,4].map(() => ({ playerId: null, classOverride: '' })), substitutes: [] };
+  GROUPS.push(g);
+  toast('Groupe créé.');
+  render();
+}
+function duplicateGroup(groupId){
+  const g = GROUPS.find(x => x.id === groupId);
+  const copy = JSON.parse(JSON.stringify(g));
+  copy.id = uid('g');
+  copy.name = g.name + ' (copie)';
+  const idx = GROUPS.findIndex(x => x.id === groupId);
+  GROUPS.splice(idx + 1, 0, copy);
+  toast('Groupe dupliqué.');
+  render();
+}
+function resetGroup(groupId){
+  MODAL = { type: 'confirm', title: 'Réinitialiser ce groupe ?', message: 'Tous les emplacements et remplaçants seront vidés.',
+    onConfirm: () => {
+      const g = GROUPS.find(x => x.id === groupId);
+      g.slots = [0,1,2,3,4].map(() => ({ playerId: null, classOverride: '' }));
+      g.substitutes = [];
+      toast('Groupe réinitialisé.');
+      MODAL = null; render();
+    }
+  };
+  render();
+}
+function deleteGroup(groupId){
+  const g = GROUPS.find(x => x.id === groupId);
+  MODAL = { type: 'confirm', title: 'Supprimer ce groupe ?', message: `« ${g.name} » sera définitivement supprimé.`,
+    onConfirm: () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast('Groupe supprimé.', 'danger'); MODAL = null; render(); }
+  };
+  render();
+}
+function setSlotPlayer(groupId, slotIdx, playerId){
+  const g = GROUPS.find(x => x.id === groupId);
+  g.slots[slotIdx].playerId = playerId || null;
+  if (!playerId) g.slots[slotIdx].classOverride = '';
+  render();
+}
+function setSlotClassOverride(groupId, slotIdx, classId){
+  const g = GROUPS.find(x => x.id === groupId);
+  g.slots[slotIdx].classOverride = classId;
+  render();
+}
+function removeSlotPlayer(groupId, slotIdx){
+  setSlotPlayer(groupId, slotIdx, null);
+  toast("Joueur retiré de l'emplacement.");
+}
+function addSubstitute(groupId, playerId){
+  if (!playerId) return;
+  const g = GROUPS.find(x => x.id === groupId);
+  if (!g.substitutes.includes(playerId)) g.substitutes.push(playerId);
+  render();
+}
+function removeSubstitute(groupId, playerId){
+  const g = GROUPS.find(x => x.id === groupId);
+  g.substitutes = g.substitutes.filter(id => id !== playerId);
+  render();
+}
+function updateGroupField(groupId, field, value){
+  const g = GROUPS.find(x => x.id === groupId);
+  g[field] = value;
+  render();
+}
+function saveGroupNotify(){
+  toast('Groupe enregistré.');
+}
+
+function copyGroupToClipboard(groupId){
+  const g = GROUPS.find(x => x.id === groupId);
+  const roleOrder = ['Tank', 'Soigneur', 'DPS', 'Support'];
+  const lines = [];
+  lines.push((g.type === 'pve' ? 'Groupe PvE ' : 'Groupe PvP ') + g.name.replace(/^Groupe\s*/i, ''));
+  const filled = g.slots.filter(s => s.playerId).map(s => {
+    const p = player(s.playerId);
+    const c = cls(p.classId);
+    return { pseudo: p.pseudo, className: s.classOverride ? (cls(s.classOverride)||{}).name : (c ? c.name : '?'), role: s.classOverride ? (cls(s.classOverride)||{}).role : (c ? c.role : '') };
+  });
+  roleOrder.forEach(role => {
+    filled.filter(f => f.role === role).forEach(f => {
+      lines.push(`${role} : ${f.pseudo} — ${f.className}`);
+    });
+  });
+  filled.filter(f => !roleOrder.includes(f.role)).forEach(f => lines.push(`${f.role || '?'} : ${f.pseudo} — ${f.className}`));
+  const subs = g.substitutes.map(id => { const p = player(id); return p ? p.pseudo : null; }).filter(Boolean);
+  if (subs.length) lines.push('Remplaçants : ' + subs.join(', '));
+  const text = lines.join('\\n');
+  const finish = () => toast('Composition copiée dans le presse-papiers (format Discord).');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(finish).catch(() => fallbackCopy(text, finish));
+  } else { fallbackCopy(text, finish); }
+}
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch(e){}
+  document.body.removeChild(ta); cb();
+}
+
+/* =========================================================
+   RENDER — SHELL
+========================================================= */
+
+function render(){
+  const root = document.getElementById('gm-app');
+  root.innerHTML = renderShell();
+  bindEvents();
+  scheduleSave();
+}
+
+function renderShell(){
+  return `
+    <div class="gm-mobile-topbar">
+      <div class="gm-brand"><div class="gm-brand-crest">G</div><div class="gm-brand-text">Guilde Manager</div></div>
+      <button class="gm-btn gm-btn-ghost gm-btn-sm" data-action="toggle-mobile-nav">☰ Menu</button>
+    </div>
+    <div class="gm-shell">
+      ${renderSidebar()}
+      <div class="gm-main">
+        ${renderTopbar()}
+        ${renderTabContent()}
+      </div>
+    </div>
+    ${MODAL ? renderModal() : ''}
+    <div class="gm-toast-container">${TOASTS.map(t => `<div class="gm-toast" style="border-left-color:${t.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(t.msg)}</div>`).join('')}</div>
+  `;
+}
+
+function renderSidebar(){
+  const items = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: '◈', adminOnly: true },
+    { id: 'players', label: 'Joueurs', icon: '☰' },
+    { id: 'classes', label: 'Classes', icon: '◆', adminOnly: true },
+    { id: 'pve', label: 'PvE', icon: '⚔' },
+    { id: 'pvp', label: 'PvP', icon: '⚡' },
+  ];
+  const visible = items.filter(i => !i.adminOnly || isAdmin());
+  return `
+    <div class="gm-sidebar ${MOBILE_NAV_OPEN ? 'open' : ''}">
+      <div class="gm-brand">
+        <div class="gm-brand-crest">G</div>
+        <div class="gm-brand-text">Guilde Manager<span>Gestion PvE / PvP</span></div>
+      </div>
+      <div class="gm-nav">
+        ${visible.map(i => `<div class="gm-nav-item ${ACTIVE_TAB===i.id?'active':''}" data-action="nav" data-tab="${i.id}"><span class="gm-nav-icon">${i.icon}</span>${esc(i.label)}</div>`).join('')}
+      </div>
+      <div class="gm-role-box">
+        <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;" data-action="open-discord-config">
+          ⚙ Backend Discord ${DISCORD_API_BASE_URL ? '· connecté' : '· non configuré'}
+        </button>
+        <div class="gm-note" style="margin-top:6px;text-align:center;">
+          ${DISCORD_API_BASE_URL
+            ? (LAST_SAVE_STATUS === 'error'
+                ? '⚠ Sauvegarde impossible (backend injoignable)'
+                : '💾 Sauvegarde automatique active')
+            : 'Sauvegarde locale désactivée (configurez le backend)'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTopbar(){
+  const titles = {
+    dashboard: ['Tableau de bord', "Vue d'ensemble de la guilde"],
+    players: ['Joueurs', 'Gérer les membres et leurs disponibilités'],
+    classes: ['Classes', 'Configurer les classes disponibles'],
+    pve: ['PvE', 'Composer les groupes pour les activités PvE'],
+    pvp: ['PvP', 'Composer les groupes pour les activités PvP'],
+  };
+  const [title, sub] = titles[ACTIVE_TAB] || ['', ''];
+  return `
+    <div class="gm-topbar">
+      <div><div class="gm-page-title gm-font-display">${esc(title)}</div><div class="gm-page-sub">${esc(sub)}</div></div>
+      ${ACTIVE_TAB==='players' ? `
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="gm-search"><input type="text" placeholder="Rechercher un pseudo…" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
+          <button class="gm-btn gm-btn-ghost" data-action="sync-discord-role">🔄 Synchroniser (rôle Aion 2)</button>
+          <button class="gm-btn gm-btn-primary" data-action="new-player">+ Nouveau joueur</button>
+          ${PLAYERS.length ? `<button class="gm-btn gm-btn-danger" data-action="clear-players">Vider la liste</button>` : ''}
+        </div>` : ''}
+    </div>
+  `;
+}
+
+function renderTabContent(){
+  switch(ACTIVE_TAB){
+    case 'dashboard': return isAdmin() ? renderDashboard() : renderGroupsTab('pve');
+    case 'players': return renderPlayers();
+    case 'classes': return isAdmin() ? renderClasses() : renderPlayers();
+    case 'pve': return renderGroupsTab('pve');
+    case 'pvp': return renderGroupsTab('pvp');
+    default: return '';
+  }
+}
+
+/* =========================================================
+   RENDER — DASHBOARD
+========================================================= */
+
+function renderDashboard(){
+  const total = PLAYERS.length;
+  const nouveaux = PLAYERS.filter(p => p.status === 'Nouveau joueur').length;
+  const pveAvail = PLAYERS.filter(p => p.pve).length;
+  const pvpAvail = PLAYERS.filter(p => p.pvp).length;
+  const unsynced = PLAYERS.filter(p => !p.discordSynced).length;
+  const groupsCount = GROUPS.length;
+
+  const byClass = CLASSES.map(c => ({ c, count: PLAYERS.filter(p => p.classId === c.id || p.secondClassId === c.id).length }));
+  const maxClass = Math.max(1, ...byClass.map(x => x.count));
+  const roles = ['Tank', 'Soigneur', 'DPS', 'Support'];
+  const byRole = roles.map(r => ({ role: r, count: PLAYERS.filter(p => { const c = cls(p.classId); return c && c.role === r; }).length }));
+  const maxRole = Math.max(1, ...byRole.map(x => x.count));
+
+  return `
+    <div class="gm-stat-grid">
+      ${statCard(total, 'Joueurs au total')}
+      ${statCard(nouveaux, 'Nouveaux joueurs')}
+      ${statCard(pveAvail, 'Disponibles PvE')}
+      ${statCard(pvpAvail, 'Disponibles PvP')}
+      ${statCard(groupsCount, 'Groupes créés')}
+      ${statCard(unsynced, 'Profils Discord non synchronisés')}
+    </div>
+    <div class="gm-dash-row">
+      <div class="gm-panel">
+        <h3 style="margin:0 0 12px;font-size:14px;">Répartition par classe</h3>
+        ${byClass.map(x => `
+          <div class="gm-bar-row">
+            <div class="gm-bar-label">${esc(x.c.icon||'')} ${esc(x.c.name)}</div>
+            <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxClass*100)}%;background:${x.c.color}"></div></div>
+            <div class="gm-bar-value">${x.count}</div>
+          </div>`).join('') || '<div class="gm-note">Aucune classe configurée.</div>'}
+      </div>
+      <div class="gm-panel">
+        <h3 style="margin:0 0 12px;font-size:14px;">Répartition par rôle</h3>
+        ${byRole.map(x => `
+          <div class="gm-bar-row">
+            <div class="gm-bar-label">${esc(x.role)}</div>
+            <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxRole*100)}%;background:${roleColor(x.role)}"></div></div>
+            <div class="gm-bar-value">${x.count}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="gm-panel">
+      <h3 style="margin:0 0 12px;font-size:14px;">Profils Discord non synchronisés</h3>
+      ${unsynced === 0 ? '<div class="gm-note">Tous les profils sont synchronisés.</div>' : `
+        <div class="gm-players-grid">
+          ${PLAYERS.filter(p=>!p.discordSynced).map(p => `
+            <div class="gm-player-card gm-panel" style="padding:12px;">
+              <div class="gm-player-top">
+                ${avatarHtml(p, 38)}
+                <div class="gm-player-names"><div class="gm-player-pseudo">${esc(p.pseudo)}</div><div class="gm-player-discord">ID: ${esc(p.discordId||'—')}</div></div>
+              </div>
+              <button class="gm-btn gm-btn-sm gm-btn-ghost" style="margin-top:10px;width:100%" data-action="edit-player" data-id="${p.id}">Synchroniser</button>
+            </div>`).join('')}
+        </div>`}
+    </div>
+  `;
+}
+function statCard(value, label){
+  return `<div class="gm-panel gm-stat-card"><div class="gm-stat-value gm-mono">${value}</div><div class="gm-stat-label">${esc(label)}</div></div>`;
+}
+
+/* =========================================================
+   RENDER — JOUEURS
+========================================================= */
+
+function filteredPlayers(){
+  return PLAYERS.filter(p => {
+    if (PLAYER_FILTERS.search && !p.pseudo.toLowerCase().includes(PLAYER_FILTERS.search.toLowerCase())) return false;
+    if (PLAYER_FILTERS.classId && p.classId !== PLAYER_FILTERS.classId && p.secondClassId !== PLAYER_FILTERS.classId) return false;
+    if (PLAYER_FILTERS.status && p.status !== PLAYER_FILTERS.status) return false;
+    if (PLAYER_FILTERS.pve === 'yes' && !p.pve) return false;
+    if (PLAYER_FILTERS.pve === 'no' && p.pve) return false;
+    if (PLAYER_FILTERS.pvp === 'yes' && !p.pvp) return false;
+    if (PLAYER_FILTERS.pvp === 'no' && p.pvp) return false;
+    return true;
+  });
+}
+
+function renderPlayers(){
+  const list = filteredPlayers();
+  return `
+    <div class="gm-filters">
+      <select class="gm-select" data-action="filter-class">
+        <option value="">Toutes les classes</option>
+        ${CLASSES.map(c => `<option value="${c.id}" ${PLAYER_FILTERS.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+      </select>
+      <select class="gm-select" data-action="filter-status">
+        <option value="">Tous les statuts</option>
+        <option value="Nouveau joueur" ${PLAYER_FILTERS.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
+        <option value="Joueur expérimenté" ${PLAYER_FILTERS.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
+      </select>
+      <select class="gm-select" data-action="filter-pve">
+        <option value="">PvE : tous</option>
+        <option value="yes" ${PLAYER_FILTERS.pve==='yes'?'selected':''}>Disponible PvE</option>
+        <option value="no" ${PLAYER_FILTERS.pve==='no'?'selected':''}>Indisponible PvE</option>
+      </select>
+      <select class="gm-select" data-action="filter-pvp">
+        <option value="">PvP : tous</option>
+        <option value="yes" ${PLAYER_FILTERS.pvp==='yes'?'selected':''}>Disponible PvP</option>
+        <option value="no" ${PLAYER_FILTERS.pvp==='no'?'selected':''}>Indisponible PvP</option>
+      </select>
+      <div class="gm-note" style="margin-left:auto">${list.length} joueur${list.length>1?'s':''}</div>
+    </div>
+    ${list.length === 0 ? emptyState('Aucun joueur ne correspond à ces filtres.') : `
+    <div class="gm-players-grid">
+      ${list.map(p => renderPlayerCard(p)).join('')}
+    </div>`}
+  `;
+}
+
+function renderPlayerCard(p){
+  const c = cls(p.classId);
+  const c2 = p.secondClassId ? cls(p.secondClassId) : null;
+  const canEdit = isAdmin();
+  return `
+    <div class="gm-panel gm-player-card">
+      ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;">Nouveau</span>` : ''}
+      <div class="gm-player-top">
+        ${avatarHtml(p, 44)}
+        <div class="gm-player-names">
+          <div class="gm-player-pseudo">${esc(p.pseudo)}</div>
+          <div class="gm-player-discord">@${esc(p.discordUsername || '—')} ${p.discordSynced ? '' : '· non synchronisé'}</div>
+        </div>
+      </div>
+      <div class="gm-player-meta">
+        ${classPill(p.classId)}
+        ${c2 ? classPill(p.secondClassId) : ''}
+        ${c ? `<span class="gm-role-tag">${esc(c.role)}</span>` : ''}
+      </div>
+      <div class="gm-player-avail">
+        <span><span class="gm-avail-dot" style="background:${p.pve?'var(--success)':'var(--muted-2)'}"></span>PvE ${p.pve?'oui':'non'}</span>
+        <span><span class="gm-avail-dot" style="background:${p.pvp?'var(--success)':'var(--muted-2)'}"></span>PvP ${p.pvp?'oui':'non'}</span>
+      </div>
+      ${canEdit ? `
+      <div class="gm-player-actions">
+        <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-player" data-id="${p.id}">Modifier</button>
+        ${isAdmin() ? `<button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-player" data-id="${p.id}">Supprimer</button>` : ''}
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function emptyState(text){
+  return `<div class="gm-empty"><div class="gm-empty-crest"></div>${esc(text)}</div>`;
+}
+
+/* =========================================================
+   RENDER — CLASSES (admin)
+========================================================= */
+
+function renderClasses(){
+  const sorted = [...CLASSES].sort((a,b) => a.order - b.order);
+  return `
+    <div class="gm-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="gm-note" style="margin:0;">Ces classes sont utilisées dans tous les menus déroulants de l'application.</div>
+        <button class="gm-btn gm-btn-primary" data-action="new-class">+ Nouvelle classe</button>
+      </div>
+      <div class="gm-scrollx">
+      <table class="gm-table">
+        <thead><tr><th>Ordre</th><th>Classe</th><th>Rôle</th><th>Couleur</th><th></th></tr></thead>
+        <tbody>
+          ${sorted.map(c => `
+            <tr>
+              <td class="gm-mono">${c.order}</td>
+              <td>${esc(c.icon||'')} ${esc(c.name)}</td>
+              <td><span class="gm-role-tag" style="color:${roleColor(c.role)}">${esc(c.role)}</span></td>
+              <td><span class="gm-color-swatch" style="background:${c.color}"></span> <span class="gm-mono" style="color:var(--muted)">${c.color}</span></td>
+              <td style="text-align:right;white-space:nowrap;">
+                <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-class" data-id="${c.id}">Modifier</button>
+                <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-class" data-id="${c.id}">Supprimer</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   RENDER — GROUPES PvE / PvP
+========================================================= */
+
+function renderGroupsTab(type){
+  const groups = GROUPS.filter(g => g.type === type);
+  return `
+    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="new-group" data-type="${type}">+ Créer un groupe ${type==='pve'?'PvE':'PvP'}</button></div>` : ''}
+    ${groups.length === 0 ? emptyState(`Aucun groupe ${type==='pve'?'PvE':'PvP'} pour le moment.`) : groups.map(g => renderGroupCard(g)).join('')}
+  `;
+}
+
+function renderGroupCard(g){
+  const filledSlots = g.slots.filter(s => s.playerId);
+  const roleCounts = { Tank: 0, Soigneur: 0, DPS: 0, Support: 0 };
+  let newCount = 0;
+  filledSlots.forEach(s => {
+    const p = player(s.playerId);
+    const effClass = s.classOverride ? cls(s.classOverride) : cls(p.classId);
+    if (effClass && roleCounts.hasOwnProperty(effClass.role)) roleCounts[effClass.role]++;
+    if (p.status === 'Nouveau joueur') newCount++;
+  });
+  const noTank = roleCounts.Tank === 0;
+  const noHeal = roleCounts.Soigneur === 0;
+
+  return `
+    <div class="gm-panel gm-group-card" data-group="${g.id}">
+      <div class="gm-group-head">
+        <div class="gm-group-title-row">
+          ${isAdmin() ? `<input class="gm-group-name" value="${esc(g.name)}" data-action="group-field" data-field="name" data-group="${g.id}">`
+            : `<div class="gm-group-name">${esc(g.name)}</div>`}
+        </div>
+        ${isAdmin() ? `
+        <div class="gm-group-meta-inputs">
+          <input type="text" placeholder="Activité / objectif (facultatif)" value="${esc(g.activity)}" data-action="group-field" data-field="activity" data-group="${g.id}" style="min-width:200px;">
+          <input type="date" value="${esc(g.date)}" data-action="group-field" data-field="date" data-group="${g.id}">
+          <input type="time" value="${esc(g.time)}" data-action="group-field" data-field="time" data-group="${g.id}">
+        </div>` : `<div class="gm-note">${esc(g.activity||'')} ${g.date?('· '+g.date):''} ${g.time?('· '+g.time):''}</div>`}
+      </div>
+
+      <div class="gm-slots">
+        ${g.slots.map((s, i) => renderSlot(g, s, i)).join('')}
+      </div>
+
+      <div class="gm-subs-title">Remplaçants</div>
+      <div class="gm-subs-list">
+        ${g.substitutes.map(pid => {
+          const p = player(pid);
+          if (!p) return '';
+          return `<div class="gm-sub-chip">${avatarHtml(p, 22)} ${esc(p.pseudo)} ${isAdmin() ? `<button data-action="remove-sub" data-group="${g.id}" data-player="${pid}">✕</button>` : ''}</div>`;
+        }).join('')}
+        ${isAdmin() ? `
+        <div class="gm-add-sub">
+          <select data-action="add-sub" data-group="${g.id}">
+            <option value="">+ Ajouter un remplaçant</option>
+            ${PLAYERS.filter(p => !g.substitutes.includes(p.id) && !g.slots.some(s=>s.playerId===p.id)).map(p => `<option value="${p.id}">${esc(p.pseudo)}</option>`).join('')}
+          </select>
+        </div>` : ''}
+      </div>
+
+      <div class="gm-balance-row">
+        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--tank)">${roleCounts.Tank}</span> Tank</div>
+        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--healer)">${roleCounts.Soigneur}</span> Soigneur</div>
+        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--dps)">${roleCounts.DPS}</span> DPS</div>
+        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--support)">${roleCounts.Support}</span> Support</div>
+        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> Nouveaux</div>
+        ${noTank ? '<span class="gm-alert-chip">⚠ Aucun Tank</span>' : ''}
+        ${noHeal ? '<span class="gm-alert-chip">⚠ Aucun Soigneur</span>' : ''}
+        ${isAdmin() ? `
+        <div class="gm-group-actions">
+          <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="copy-group" data-group="${g.id}">📋 Copier</button>
+          <button class="gm-btn gm-btn-sm gm-btn-primary" data-action="save-group" data-group="${g.id}">Enregistrer</button>
+          <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="duplicate-group" data-group="${g.id}">Dupliquer</button>
+          <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="reset-group" data-group="${g.id}">Réinitialiser</button>
+          <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-group" data-group="${g.id}">Supprimer</button>
+        </div>` : `
+        <div class="gm-group-actions"><button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="copy-group" data-group="${g.id}">📋 Copier</button></div>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderSlot(g, s, i){
+  const takenIds = g.slots.filter((x,idx) => idx!==i && x.playerId).map(x => x.playerId);
+  const p = s.playerId ? player(s.playerId) : null;
+  const canEdit = isAdmin();
+
+  if (!p) {
+    const options = PLAYERS.map(pl => {
+      const disabled = takenIds.includes(pl.id);
+      return `<option value="${pl.id}" ${disabled?'disabled':''}>${esc(pl.pseudo)}${disabled?' (déjà dans ce groupe)':''}</option>`;
+    }).join('');
+    return `
+      <div class="gm-slot">
+        <div class="gm-slot-num">Emplacement ${i+1}</div>
+        <div class="gm-slot-empty" style="flex-direction:column;gap:6px;">
+          ${canEdit ? `
+          <select data-action="slot-select" data-group="${g.id}" data-slot="${i}">
+            <option value="">— Choisir un joueur —</option>
+            ${options}
+          </select>` : `<span style="color:var(--muted-2);font-size:20px;">＋</span>`}
+        </div>
+      </div>
+    `;
+  }
+
+  const c = cls(p.classId);
+  const otherGroups = groupsContainingPlayer(p.id, g.type, g.id);
+  const effClass = s.classOverride ? cls(s.classOverride) : c;
+
+  return `
+    <div class="gm-slot filled">
+      ${canEdit ? `<button class="gm-slot-remove" data-action="remove-slot" data-group="${g.id}" data-slot="${i}" title="Retirer">✕</button>` : ''}
+      <div class="gm-slot-num">Emplacement ${i+1}</div>
+      <div class="gm-slot-filled-body">
+        ${avatarHtml(p, 34)}
+        <div style="min-width:0;">
+          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? '<span class=\"gm-badge-new\" style=\"margin-left:4px;\">Nouveau</span>' : ''}</div>
+          <div style="margin-top:3px;">${classPill(effClass ? effClass.id : p.classId)}</div>
+        </div>
+      </div>
+      ${canEdit ? `
+      <div class="gm-slot-classoverride">
+        <select data-action="slot-class-override" data-group="${g.id}" data-slot="${i}">
+          <option value="">Classe par défaut (${esc(c?c.name:'?')})</option>
+          ${CLASSES.map(cc => `<option value="${cc.id}" ${s.classOverride===cc.id?'selected':''}>${esc(cc.name)}</option>`).join('')}
+        </select>
+      </div>` : ''}
+      ${otherGroups.length ? `<div class="gm-slot-warning">⚠ Déjà dans « ${esc(otherGroups[0].name)} »</div>` : ''}
+    </div>
+  `;
+}
+
+/* =========================================================
+   RENDER — MODALS
+========================================================= */
+
+function renderModal(){
+  if (MODAL.type === 'player') return renderPlayerModal();
+  if (MODAL.type === 'class') return renderClassModal();
+  if (MODAL.type === 'confirm') return renderConfirmModal();
+  if (MODAL.type === 'discordConfig') return renderDiscordConfigModal();
+  return '';
+}
+
+function renderDiscordConfigModal(){
+  return `
+    <div class="gm-modal-overlay" data-action="close-modal">
+      <div class="gm-modal" data-stop="1">
+        <h3>Backend Discord</h3>
+        <div class="gm-note" style="margin-bottom:12px;">
+          Renseignez l'URL du petit serveur backend qui détient le token du bot Discord
+          (voir <span class="gm-mono">discord-backend/README.md</span>). Laissez vide pour rester
+          en mode démonstration (données simulées).
+        </div>
+        <div class="gm-form-row">
+          <label>URL du backend</label>
+          <input type="text" placeholder="http://localhost:3001" value="${esc(MODAL.form.url)}" data-field="url" data-action="form-input">
+        </div>
+        ${MODAL.status ? `<div class="gm-discord-status ${MODAL.status.tone}">${esc(MODAL.status.text)}</div>` : ''}
+        <div class="gm-modal-actions">
+          <button class="gm-btn gm-btn-ghost" data-action="test-discord-config">Tester la connexion</button>
+          <button class="gm-btn gm-btn-primary" data-action="save-discord-config">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerModal(){
+  const f = MODAL.form;
+  // Accès libre : les champs Discord sont toujours visibles et modifiables.
+  return `
+    <div class="gm-modal-overlay" data-action="close-modal">
+      <div class="gm-modal" data-stop="1">
+        <h3>${MODAL.editingId ? 'Modifier le profil' : 'Nouveau joueur'}</h3>
+        <div class="gm-form-row">
+          <label>Pseudo en jeu *</label>
+          <input type="text" value="${esc(f.pseudo)}" data-field="pseudo" data-action="form-input">
+        </div>
+        <div class="gm-form-2col">
+          <div class="gm-form-row">
+            <label>Classe principale</label>
+            <select data-field="classId" data-action="form-input">
+              ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="gm-form-row">
+            <label>Classe secondaire (facultatif)</label>
+            <select data-field="secondClassId" data-action="form-input">
+              <option value="">Aucune</option>
+              ${CLASSES.map(c => `<option value="${c.id}" ${f.secondClassId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="gm-form-row">
+          <label>Statut</label>
+          <select data-field="status" data-action="form-input">
+            <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
+            <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
+          </select>
+        </div>
+        <div class="gm-form-2col">
+          <div class="gm-form-row">
+            <label><input type="checkbox" ${f.pve?'checked':''} data-field="pve" data-action="form-checkbox" style="width:auto;margin-right:6px;">Disponible PvE</label>
+          </div>
+          <div class="gm-form-row">
+            <label><input type="checkbox" ${f.pvp?'checked':''} data-field="pvp" data-action="form-checkbox" style="width:auto;margin-right:6px;">Disponible PvP</label>
+          </div>
+        </div>
+
+        ${true ? `
+        <div class="gm-form-row">
+          <label>Identifiant Discord</label>
+          <div class="gm-discord-row">
+            <div><input type="text" placeholder="ex : 123456789012345678" value="${esc(f.discordId)}" data-field="discordId" data-action="form-input"></div>
+            <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="fetch-discord">Récupérer le profil Discord</button>
+          </div>
+          ${MODAL.discordStatus ? `<div class="gm-discord-status ${MODAL.discordStatus.tone}">${esc(MODAL.discordStatus.text)}</div>` : ''}
+          ${f.discordUsername ? `
+          <div class="gm-discord-preview">
+            ${f.discordAvatar ? `<img class="gm-avatar" style="width:32px;height:32px" src="${esc(f.discordAvatar)}">` : `<div class="gm-avatar-fallback" style="width:32px;height:32px">${esc(f.discordUsername.slice(0,2).toUpperCase())}</div>`}
+            <div style="font-size:12.5px;">@${esc(f.discordUsername)}</div>
+          </div>` : ''}
+          <div class="gm-note">Saisie manuelle possible si la récupération échoue :</div>
+          <div class="gm-form-2col" style="margin-top:6px;">
+            <input type="text" placeholder="Pseudo Discord" value="${esc(f.discordUsername)}" data-field="discordUsername" data-action="form-input">
+            <input type="text" placeholder="URL de l'avatar" value="${esc(f.discordAvatar)}" data-field="discordAvatar" data-action="form-input">
+          </div>
+        </div>` : ''}
+
+        ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
+        <div class="gm-modal-actions">
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
+          <button class="gm-btn gm-btn-primary" data-action="save-player">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderClassModal(){
+  const f = MODAL.form;
+  return `
+    <div class="gm-modal-overlay" data-action="close-modal">
+      <div class="gm-modal" data-stop="1">
+        <h3>${MODAL.editingId ? 'Modifier la classe' : 'Nouvelle classe'}</h3>
+        <div class="gm-form-row"><label>Nom *</label><input type="text" value="${esc(f.name)}" data-field="name" data-action="form-input"></div>
+        <div class="gm-form-2col">
+          <div class="gm-form-row">
+            <label>Rôle</label>
+            <select data-field="role" data-action="form-input">
+              ${['Tank','Soigneur','DPS','Support'].map(r => `<option value="${r}" ${f.role===r?'selected':''}>${r}</option>`).join('')}
+            </select>
+          </div>
+          <div class="gm-form-row"><label>Ordre d'affichage</label><input type="number" value="${f.order}" data-field="order" data-action="form-input"></div>
+        </div>
+        <div class="gm-form-2col">
+          <div class="gm-form-row"><label>Couleur</label><input type="color" value="${f.color}" data-field="color" data-action="form-input" style="height:38px;padding:4px;"></div>
+          <div class="gm-form-row"><label>Icône (emoji, facultatif)</label><input type="text" value="${esc(f.icon)}" data-field="icon" data-action="form-input" placeholder="🛡️"></div>
+        </div>
+        ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
+        <div class="gm-modal-actions">
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
+          <button class="gm-btn gm-btn-primary" data-action="save-class">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmModal(){
+  return `
+    <div class="gm-modal-overlay" data-action="close-modal">
+      <div class="gm-modal" data-stop="1" style="max-width:400px;">
+        <h3>${esc(MODAL.title)}</h3>
+        <div class="gm-note" style="font-size:13px;color:var(--text);opacity:0.85;">${esc(MODAL.message)}</div>
+        <div class="gm-modal-actions">
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
+          <button class="gm-btn gm-btn-danger" data-action="confirm-modal">Confirmer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+function bindEvents(){
+  const root = document.getElementById('gm-app');
+
+  root.querySelectorAll('[data-action]').forEach(el => {
+    const action = el.getAttribute('data-action');
+
+    if (action === 'close-modal') {
+      // N'accepte de fermer que si le clic (mousedown ET mouseup/click) a
+      // commencé et fini exactement sur cet élément. Cela évite qu'une
+      // sélection de texte glissée depuis un champ (ex: identifiant Discord)
+      // et relâchée hors de la fenêtre ne ferme la modale par erreur.
+      let downOnSelf = false;
+      el.addEventListener('mousedown', (e) => { downOnSelf = (e.target === el); });
+      el.addEventListener('click', (e) => {
+        if (!downOnSelf) return;
+        if (e.target !== el) return;
+        handleClick(action, el, e);
+      });
+      return;
+    }
+
+    if (['nav','new-player','edit-player','delete-player','new-class','edit-class','delete-class',
+         'new-group','duplicate-group','reset-group','delete-group','remove-slot','remove-sub','copy-group','save-group',
+         'confirm-modal','save-player','save-class','fetch-discord','toggle-mobile-nav',
+         'open-discord-config','save-discord-config','test-discord-config',
+         'sync-discord-role','clear-players'].includes(action)) {
+      el.addEventListener('click', (e) => {
+        handleClick(action, el, e);
+      });
+    }
+    if (['filter-search','filter-class','filter-status','filter-pve','filter-pvp','group-field','slot-select','slot-class-override','add-sub','form-input','form-checkbox'].includes(action)) {
+      const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type==='date' || el.type==='time' || el.type==='color' || el.type==='number') ? 'change' : 'input';
+      el.addEventListener(evt, (e) => handleInput(action, el, e));
+    }
+  });
+
+  root.querySelectorAll('[data-stop]').forEach(el => el.addEventListener('click', (e) => e.stopPropagation()));
+}
+
+function handleClick(action, el, e){
+  const id = el.getAttribute('data-id');
+  switch(action){
+    case 'toggle-mobile-nav': MOBILE_NAV_OPEN = !MOBILE_NAV_OPEN; render(); break;
+    case 'nav': ACTIVE_TAB = el.getAttribute('data-tab'); MOBILE_NAV_OPEN = false; render(); break;
+    case 'new-player': openPlayerModal(null); break;
+    case 'edit-player': openPlayerModal(id); break;
+    case 'delete-player': requestDeletePlayer(id); break;
+    case 'new-class': openClassModal(null); break;
+    case 'edit-class': openClassModal(id); break;
+    case 'delete-class': requestDeleteClass(id); break;
+    case 'new-group': createGroup(el.getAttribute('data-type')); break;
+    case 'duplicate-group': duplicateGroup(el.getAttribute('data-group')); break;
+    case 'reset-group': resetGroup(el.getAttribute('data-group')); break;
+    case 'delete-group': deleteGroup(el.getAttribute('data-group')); break;
+    case 'remove-slot': removeSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot'))); break;
+    case 'remove-sub': removeSubstitute(el.getAttribute('data-group'), el.getAttribute('data-player')); break;
+    case 'copy-group': copyGroupToClipboard(el.getAttribute('data-group')); break;
+    case 'save-group': saveGroupNotify(); break;
+    case 'close-modal': MODAL = null; render(); break;
+    case 'confirm-modal': if (MODAL && MODAL.onConfirm) MODAL.onConfirm(); break;
+    case 'save-player': savePlayerForm(); break;
+    case 'save-class': saveClassForm(); break;
+    case 'fetch-discord': simulateDiscordFetch(); break;
+    case 'open-discord-config': openDiscordConfigModal(); break;
+    case 'save-discord-config': saveDiscordConfig(); break;
+    case 'test-discord-config': testDiscordConfig(); break;
+    case 'sync-discord-role': syncDiscordRole(); break;
+    case 'clear-players': requestClearPlayers(); break;
+  }
+}
+
+function handleInput(action, el, e){
+  const val = el.value;
+  switch(action){
+    case 'filter-search': PLAYER_FILTERS.search = val; renderPreserveFocus(); break;
+    case 'filter-class': PLAYER_FILTERS.classId = val; render(); break;
+    case 'filter-status': PLAYER_FILTERS.status = val; render(); break;
+    case 'filter-pve': PLAYER_FILTERS.pve = val; render(); break;
+    case 'filter-pvp': PLAYER_FILTERS.pvp = val; render(); break;
+    case 'group-field': updateGroupField(el.getAttribute('data-group'), el.getAttribute('data-field'), val); break;
+    case 'slot-select': setSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
+    case 'slot-class-override': setSlotClassOverride(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
+    case 'add-sub': addSubstitute(el.getAttribute('data-group'), val); break;
+    case 'form-input': MODAL.form[el.getAttribute('data-field')] = val; MODAL.error=''; if(document.activeElement===el){renderKeepInputFocus(el);} else render(); break;
+    case 'form-checkbox': MODAL.form[el.getAttribute('data-field')] = el.checked; render(); break;
+  }
+}
+
+/* Preserve focus/caret for text search & modal text inputs while re-rendering */
+function renderPreserveFocus(){
+  const active = document.activeElement;
+  const action = active && active.getAttribute ? active.getAttribute('data-action') : null;
+  const selStart = active && active.selectionStart;
+  render();
+  if (action) {
+    const el = document.querySelector(`[data-action="${action}"]`);
+    if (el) { el.focus(); if (selStart!=null && el.setSelectionRange) { try{ el.setSelectionRange(selStart, selStart); }catch(e){} } }
+  }
+}
+function renderKeepInputFocus(sourceEl){
+  const field = sourceEl.getAttribute('data-field');
+  const selStart = sourceEl.selectionStart;
+  render();
+  const el = document.querySelector(`[data-field="${field}"][data-action="form-input"]`);
+  if (el) { el.focus(); if (selStart!=null && el.setSelectionRange) { try{ el.setSelectionRange(selStart, selStart); }catch(e){} } }
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+loadStateThenRender();
+
+})();
+</script>
