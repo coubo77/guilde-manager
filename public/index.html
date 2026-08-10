@@ -179,7 +179,17 @@ html, body {
   padding: 8px 10px; border-radius: 9px; font-size: 12.5px; font-family: 'Inter'; outline: none;
 }
 .gm-players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.gm-player-card { padding: 14px; position: relative; transition: transform .15s ease, border-color .15s ease; }
+.gm-player-card { padding: 14px; position: relative; overflow: hidden; transition: transform .15s ease, border-color .15s ease; }
+.gm-player-card-icon {
+  position: absolute;
+  right: -12px; bottom: -12px;
+  width: 128px; height: 128px;
+  object-fit: contain;
+  opacity: 0.5;
+  z-index: -1;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+}
 .gm-player-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
 .gm-player-top { display: flex; gap: 10px; align-items: flex-start; }
 .gm-avatar {
@@ -203,11 +213,6 @@ html, body {
 .gm-group-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .gm-group-name { font-family: 'Cinzel'; font-size: 16px; font-weight: 600; background: transparent; border: none; color: var(--text); outline: none; border-bottom: 1px dashed transparent; }
 .gm-group-name:focus { border-bottom: 1px dashed var(--border-strong); }
-.gm-group-meta-inputs { display: flex; gap: 8px; flex-wrap: wrap; }
-.gm-group-meta-inputs input {
-  background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
-  padding: 6px 9px; border-radius: 8px; font-size: 12px; outline: none; font-family:'Inter';
-}
 .gm-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 @media (max-width: 900px) { .gm-slots { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .gm-slots { grid-template-columns: 1fr; } }
@@ -231,13 +236,6 @@ html, body {
 .gm-slot-classoverride { margin-top: 6px; }
 .gm-slot-classoverride select { padding: 4px 6px; font-size: 10.5px; }
 .gm-slot-warning { font-size: 10px; color: var(--new); margin-top: 5px; display:flex; align-items:center; gap:3px; }
-
-.gm-subs-title { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 16px 0 8px; }
-.gm-subs-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.gm-sub-chip { display: flex; align-items: center; gap: 6px; background: var(--panel-solid); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px 4px 4px; font-size: 12px; }
-.gm-sub-chip img, .gm-sub-chip .gm-avatar-fallback { width: 22px; height: 22px; font-size: 9px; }
-.gm-sub-chip button { background: none; border: none; color: var(--muted); cursor: pointer; margin-left: 2px; }
-.gm-add-sub select { background: var(--panel-solid); border: 1px dashed var(--border-strong); color: var(--muted); padding: 6px 10px; border-radius: 20px; font-size: 12px; }
 
 .gm-balance-row { display: flex; gap: 16px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
 .gm-balance-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
@@ -331,10 +329,10 @@ let CLASSES = [
 // ou le formulaire "Nouveau joueur" pour la peupler.
 let PLAYERS = [];
 
-function mkGroup(type, name, activity, date, time, slotPseudos, subPseudos) {
+function mkGroup(type, name, slotPseudos) {
   const findId = (pseudo) => { const p = PLAYERS.find(pl => pl.pseudo === pseudo); return p ? p.id : null; };
   const slots = [0,1,2,3,4].map(i => ({ playerId: slotPseudos[i] ? findId(slotPseudos[i]) : null }));
-  return { id: uid('g'), type, name, activity, date, time, slots, substitutes: (subPseudos||[]).map(findId).filter(Boolean) };
+  return { id: uid('g'), type, name, slots };
 }
 
 let GROUPS = [];
@@ -441,7 +439,7 @@ function classPill(classId, overrideName){
 /* group membership warning: is player in another group of same type? */
 function groupsContainingPlayer(playerId, type, excludeGroupId){
   return GROUPS.filter(g => g.type === type && g.id !== excludeGroupId &&
-    (g.slots.some(s => s.playerId === playerId) || g.substitutes.includes(playerId)));
+    g.slots.some(s => s.playerId === playerId));
 }
 
 /* =========================================================
@@ -490,40 +488,39 @@ function uniquePseudo(base){
   return candidate;
 }
 
-function syncDiscordRole(){
+function connectWithDiscord(){
   if (!DISCORD_API_BASE_URL) { toast('Configurez d\'abord le backend Discord (⚙).', 'danger'); return; }
-  toast('Synchronisation avec Discord en cours…');
-  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/discord/role-members?role=${encodeURIComponent('Aion 2')}`)
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const messages = {
-          guild_not_configured: 'DISCORD_GUILD_ID doit être renseigné dans le fichier .env du backend.',
-          role_not_found: 'Aucun rôle « Aion 2 » trouvé sur votre serveur Discord.',
-          forbidden: 'Autorisation insuffisante : activez le "Server Members Intent" pour le bot.',
-          unauthorized: 'Token du bot Discord invalide.',
-          connection_error: 'Problème de connexion à Discord.',
-        };
-        toast(data.message || messages[data.error] || 'Échec de la synchronisation.', 'danger');
-        return;
-      }
-      let added = 0, skipped = 0;
-      (data.members || []).forEach(m => {
-        if (PLAYERS.find(p => p.discordId === m.id)) { skipped++; return; }
-        PLAYERS.push({
-          id: uid('p'),
-          pseudo: uniquePseudo(m.nickname || m.displayName || m.username),
-          classId: '',
-          secondClassId: '', status: 'Nouveau joueur',
-          discordId: m.id, discordUsername: m.username, discordAvatar: m.avatarUrl,
-          discordSynced: true,
-        });
-        added++;
-      });
-      toast(`Synchronisation terminée : ${added} joueur(s) importé(s), ${skipped} déjà présent(s).`);
-      render();
-    })
-    .catch(() => toast('Impossible de joindre le backend Discord.', 'danger'));
+  window.location.href = `${DISCORD_API_BASE_URL.replace(/\/$/, '')}/auth/discord/login`;
+}
+
+function handleDiscordLoginRedirect(){
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('discord_login');
+  if (!status) return;
+  const reason = params.get('reason');
+  if (status === 'success') {
+    toast('Connecté avec Discord — bienvenue dans la guilde !');
+  } else if (status === 'denied') {
+    const messages = {
+      not_member: "Vous n'êtes pas membre de ce serveur Discord.",
+      missing_role: `Vous n'avez pas le rôle « Aion 2 » requis pour rejoindre.`,
+      cancelled: 'Connexion annulée.',
+    };
+    toast(messages[reason] || 'Accès refusé.', 'danger');
+  } else if (status === 'error') {
+    const messages = {
+      guild_not_configured: "Le serveur Discord n'est pas configuré côté backend.",
+      server_misconfigured: "La connexion Discord n'est pas configurée côté backend (identifiants OAuth2 manquants).",
+      role_not_found: `Le rôle « Aion 2 » est introuvable sur le serveur Discord.`,
+      token_exchange_failed: 'Échec de la connexion à Discord. Réessayez.',
+    };
+    toast(messages[reason] || 'Erreur lors de la connexion Discord. Réessayez.', 'danger');
+  }
+  // Nettoie l'URL pour ne pas garder les paramètres après le message.
+  const url = new URL(window.location.href);
+  url.searchParams.delete('discord_login');
+  url.searchParams.delete('reason');
+  window.history.replaceState({}, '', url.toString());
 }
 
 function simulateDiscordFetch(){
@@ -657,32 +654,10 @@ function requestDeleteClass(classId){
 
 function createGroup(type){
   const count = GROUPS.filter(g => g.type === type).length;
-  const g = { id: uid('g'), type, name: 'Groupe ' + (count + 1), activity: '', date: '', time: '',
-    slots: [0,1,2,3,4].map(() => ({ playerId: null })), substitutes: [] };
+  const g = { id: uid('g'), type, name: 'Groupe ' + (count + 1),
+    slots: [0,1,2,3,4].map(() => ({ playerId: null })) };
   GROUPS.push(g);
   toast('Groupe créé.');
-  render();
-}
-function duplicateGroup(groupId){
-  const g = GROUPS.find(x => x.id === groupId);
-  const copy = JSON.parse(JSON.stringify(g));
-  copy.id = uid('g');
-  copy.name = g.name + ' (copie)';
-  const idx = GROUPS.findIndex(x => x.id === groupId);
-  GROUPS.splice(idx + 1, 0, copy);
-  toast('Groupe dupliqué.');
-  render();
-}
-function resetGroup(groupId){
-  MODAL = { type: 'confirm', title: 'Réinitialiser ce groupe ?', message: 'Tous les emplacements et remplaçants seront vidés.',
-    onConfirm: () => {
-      const g = GROUPS.find(x => x.id === groupId);
-      g.slots = [0,1,2,3,4].map(() => ({ playerId: null }));
-      g.substitutes = [];
-      toast('Groupe réinitialisé.');
-      MODAL = null; render();
-    }
-  };
   render();
 }
 function deleteGroup(groupId){
@@ -709,50 +684,10 @@ function removeSlotPlayer(groupId, slotIdx){
   setSlotPlayer(groupId, slotIdx, null);
   toast("Joueur retiré de l'emplacement.");
 }
-function addSubstitute(groupId, playerId){
-  if (!playerId) return;
-  const g = GROUPS.find(x => x.id === groupId);
-  if (!g.substitutes.includes(playerId)) g.substitutes.push(playerId);
-  render();
-}
-function removeSubstitute(groupId, playerId){
-  const g = GROUPS.find(x => x.id === groupId);
-  g.substitutes = g.substitutes.filter(id => id !== playerId);
-  render();
-}
 function updateGroupField(groupId, field, value){
   const g = GROUPS.find(x => x.id === groupId);
   g[field] = value;
   render();
-}
-function saveGroupNotify(){
-  toast('Groupe enregistré.');
-}
-
-function copyGroupToClipboard(groupId){
-  const g = GROUPS.find(x => x.id === groupId);
-  const lines = [];
-  lines.push((g.type === 'pve' ? 'Groupe PvE ' : 'Groupe PvP ') + g.name.replace(/^Groupe\s*/i, ''));
-  g.slots.forEach((s, i) => {
-    if (!s.playerId) return;
-    const p = player(s.playerId);
-    const c = cls(p.classId);
-    const className = c ? c.name : 'classe non définie';
-    lines.push(`${i+1}. ${p.pseudo} — ${className}`);
-  });
-  const subs = g.substitutes.map(id => { const p = player(id); return p ? p.pseudo : null; }).filter(Boolean);
-  if (subs.length) lines.push('Remplaçants : ' + subs.join(', '));
-  const text = lines.join('\\n');
-  const finish = () => toast('Composition copiée dans le presse-papiers (format Discord).');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(finish).catch(() => fallbackCopy(text, finish));
-  } else { fallbackCopy(text, finish); }
-}
-function fallbackCopy(text, cb){
-  const ta = document.createElement('textarea');
-  ta.value = text; document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); } catch(e){}
-  document.body.removeChild(ta); cb();
 }
 
 /* =========================================================
@@ -803,16 +738,10 @@ function renderSidebar(){
         ${visible.map(i => `<div class="gm-nav-item ${ACTIVE_TAB===i.id?'active':''}" data-action="nav" data-tab="${i.id}"><span class="gm-nav-icon">${i.icon}</span>${esc(i.label)}</div>`).join('')}
       </div>
       <div class="gm-role-box">
-        <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;" data-action="open-discord-config">
-          ⚙ Backend Discord ${DISCORD_API_BASE_URL ? '· connecté' : '· non configuré'}
+        <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;display:flex;align-items:center;gap:8px;justify-content:center;" data-action="open-discord-config">
+          <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};box-shadow:0 0 6px ${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};"></span>
+          Discord
         </button>
-        <div class="gm-note" style="margin-top:6px;text-align:center;">
-          ${DISCORD_API_BASE_URL
-            ? (LAST_SAVE_STATUS === 'error'
-                ? '⚠ Sauvegarde impossible (backend injoignable)'
-                : '💾 Sauvegarde automatique active')
-            : 'Sauvegarde locale désactivée (configurez le backend)'}
-        </div>
       </div>
     </div>
   `;
@@ -833,7 +762,7 @@ function renderTopbar(){
       ${ACTIVE_TAB==='players' ? `
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <div class="gm-search"><input type="text" placeholder="Rechercher un pseudo…" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
-          <button class="gm-btn gm-btn-ghost" data-action="sync-discord-role">🔄 Synchroniser (rôle Aion 2)</button>
+          <button class="gm-btn gm-btn-ghost" data-action="connect-discord">🔗 Connexion Discord</button>
           <button class="gm-btn gm-btn-primary" data-action="new-player">+ Nouveau joueur</button>
         </div>` : ''}
     </div>
@@ -941,11 +870,9 @@ function renderPlayerCard(p){
   const c2 = p.secondClassId ? cls(p.secondClassId) : null;
   const canEdit = isAdmin();
   const bgIcon = c && isImagePath(c.icon) ? c.icon : '';
-  const bgStyle = bgIcon
-    ? `background-image:linear-gradient(115deg, transparent 38%, var(--panel-solid) 78%), url('${esc(bgIcon)}');background-repeat:no-repeat,no-repeat;background-position:right center, right -14px center;background-size:100% 100%, 118px 118px;`
-    : '';
   return `
-    <div class="gm-panel gm-player-card" style="${bgStyle}">
+    <div class="gm-panel gm-player-card">
+      ${bgIcon ? `<img class="gm-player-card-icon" src="${esc(bgIcon)}" alt="">` : ''}
       ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;">Nouveau</span>` : ''}
       <div class="gm-player-top">
         ${avatarHtml(p, 44)}
@@ -1030,32 +957,10 @@ function renderGroupCard(g){
           ${isAdmin() ? `<input class="gm-group-name" value="${esc(g.name)}" data-action="group-field" data-field="name" data-group="${g.id}">`
             : `<div class="gm-group-name">${esc(g.name)}</div>`}
         </div>
-        ${isAdmin() ? `
-        <div class="gm-group-meta-inputs">
-          <input type="text" placeholder="Activité / objectif (facultatif)" value="${esc(g.activity)}" data-action="group-field" data-field="activity" data-group="${g.id}" style="min-width:200px;">
-          <input type="date" value="${esc(g.date)}" data-action="group-field" data-field="date" data-group="${g.id}">
-          <input type="time" value="${esc(g.time)}" data-action="group-field" data-field="time" data-group="${g.id}">
-        </div>` : `<div class="gm-note">${esc(g.activity||'')} ${g.date?('· '+g.date):''} ${g.time?('· '+g.time):''}</div>`}
       </div>
 
       <div class="gm-slots">
         ${g.slots.map((s, i) => renderSlot(g, s, i)).join('')}
-      </div>
-
-      <div class="gm-subs-title">Remplaçants</div>
-      <div class="gm-subs-list">
-        ${g.substitutes.map(pid => {
-          const p = player(pid);
-          if (!p) return '';
-          return `<div class="gm-sub-chip">${avatarHtml(p, 22)} ${esc(p.pseudo)} ${isAdmin() ? `<button data-action="remove-sub" data-group="${g.id}" data-player="${pid}">✕</button>` : ''}</div>`;
-        }).join('')}
-        ${isAdmin() ? `
-        <div class="gm-add-sub">
-          <select data-action="add-sub" data-group="${g.id}">
-            <option value="">+ Ajouter un remplaçant</option>
-            ${PLAYERS.filter(p => !g.substitutes.includes(p.id) && !g.slots.some(s=>s.playerId===p.id)).map(p => `<option value="${p.id}">${esc(p.pseudo)}</option>`).join('')}
-          </select>
-        </div>` : ''}
       </div>
 
       <div class="gm-balance-row">
@@ -1063,13 +968,8 @@ function renderGroupCard(g){
         <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> Nouveaux</div>
         ${isAdmin() ? `
         <div class="gm-group-actions">
-          <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="copy-group" data-group="${g.id}">📋 Copier</button>
-          <button class="gm-btn gm-btn-sm gm-btn-primary" data-action="save-group" data-group="${g.id}">Enregistrer</button>
-          <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="duplicate-group" data-group="${g.id}">Dupliquer</button>
-          <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="reset-group" data-group="${g.id}">Réinitialiser</button>
           <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-group" data-group="${g.id}">Supprimer</button>
-        </div>` : `
-        <div class="gm-group-actions"><button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="copy-group" data-group="${g.id}">📋 Copier</button></div>`}
+        </div>` : ''}
       </div>
     </div>
   `;
@@ -1290,15 +1190,15 @@ function bindEvents(){
     }
 
     if (['nav','new-player','edit-player','new-class','edit-class','delete-class',
-         'new-group','duplicate-group','reset-group','delete-group','remove-slot','remove-sub','copy-group','save-group',
+         'new-group','delete-group','remove-slot',
          'confirm-modal','save-player','save-class','fetch-discord','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
-         'sync-discord-role'].includes(action)) {
+         'connect-discord'].includes(action)) {
       el.addEventListener('click', (e) => {
         handleClick(action, el, e);
       });
     }
-    if (['filter-search','filter-class','filter-status','group-field','slot-select','player-class-select','add-sub','form-input','form-checkbox'].includes(action)) {
+    if (['filter-search','filter-class','filter-status','group-field','slot-select','player-class-select','form-input','form-checkbox'].includes(action)) {
       const evt = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type==='date' || el.type==='time' || el.type==='color' || el.type==='number') ? 'change' : 'input';
       el.addEventListener(evt, (e) => handleInput(action, el, e));
     }
@@ -1318,13 +1218,8 @@ function handleClick(action, el, e){
     case 'edit-class': openClassModal(id); break;
     case 'delete-class': requestDeleteClass(id); break;
     case 'new-group': createGroup(el.getAttribute('data-type')); break;
-    case 'duplicate-group': duplicateGroup(el.getAttribute('data-group')); break;
-    case 'reset-group': resetGroup(el.getAttribute('data-group')); break;
     case 'delete-group': deleteGroup(el.getAttribute('data-group')); break;
     case 'remove-slot': removeSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot'))); break;
-    case 'remove-sub': removeSubstitute(el.getAttribute('data-group'), el.getAttribute('data-player')); break;
-    case 'copy-group': copyGroupToClipboard(el.getAttribute('data-group')); break;
-    case 'save-group': saveGroupNotify(); break;
     case 'close-modal': MODAL = null; render(); break;
     case 'confirm-modal': if (MODAL && MODAL.onConfirm) MODAL.onConfirm(); break;
     case 'save-player': savePlayerForm(); break;
@@ -1333,7 +1228,7 @@ function handleClick(action, el, e){
     case 'open-discord-config': openDiscordConfigModal(); break;
     case 'save-discord-config': saveDiscordConfig(); break;
     case 'test-discord-config': testDiscordConfig(); break;
-    case 'sync-discord-role': syncDiscordRole(); break;
+    case 'connect-discord': connectWithDiscord(); break;
   }
 }
 
@@ -1346,7 +1241,6 @@ function handleInput(action, el, e){
     case 'group-field': updateGroupField(el.getAttribute('data-group'), el.getAttribute('data-field'), val); break;
     case 'slot-select': setSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
     case 'player-class-select': setPlayerClass(el.getAttribute('data-player'), val); break;
-    case 'add-sub': addSubstitute(el.getAttribute('data-group'), val); break;
     case 'form-input': MODAL.form[el.getAttribute('data-field')] = val; MODAL.error=''; if(document.activeElement===el){renderKeepInputFocus(el);} else render(); break;
     case 'form-checkbox': MODAL.form[el.getAttribute('data-field')] = el.checked; render(); break;
   }
@@ -1375,6 +1269,7 @@ function renderKeepInputFocus(sourceEl){
    INIT
 ========================================================= */
 loadStateThenRender();
+handleDiscordLoginRedirect();
 
 })();
 </script>
