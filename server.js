@@ -1,23 +1,26 @@
 /**
- * Backend "Wingmate" — récupération de profils Discord.
+ * Backend "Wingmate" — récupération de profils Discord + connexion obligatoire.
  *
- * Ce serveur est le SEUL endroit où le token du bot Discord doit exister.
- * Il n'est jamais envoyé au navigateur. Le front-end appelle uniquement
- * GET /api/discord/:id sur ce serveur.
+ * Ce serveur est le SEUL endroit où le token du bot et le client secret Discord
+ * doivent exister. Ils ne sont jamais envoyés au navigateur.
  *
  * Démarrage :
  *   1. npm install
- *   2. cp .env.example .env   puis renseigner DISCORD_BOT_TOKEN
+ *   2. cp .env.example .env   puis renseigner les variables Discord
  *   3. npm start
  */
 
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
+app.set('trust proxy', 1); // nécessaire pour détecter le HTTPS derrière Render/un proxy
+
 const PORT = process.env.PORT || 3001;
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = process.env.DISCORD_GUILD_ID || '';
@@ -26,20 +29,84 @@ const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
 const REQUIRED_ROLE_NAME = process.env.DISCORD_REQUIRED_ROLE_NAME || 'Aion 2';
 const DISCORD_API = 'https://discord.com/api/v10';
 const DATA_FILE = path.join(__dirname, 'data.json');
+const SESSION_COOKIE = 'wingmate_session';
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 jours
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 app.use(express.json({ limit: '5mb' }));
+app.use(cookieParser());
 
 // Sert le site (public/index.html) depuis ce même serveur : un seul service à
 // héberger, et plus de souci de CORS puisque tout vient du même domaine.
+// L'accès aux DONNÉES (API) reste protégé séparément par la session ci-dessous ;
+// servir les fichiers statiques (HTML/CSS/JS/images) sans contrôle est nécessaire
+// pour que la page puisse d'abord se charger et afficher l'écran de connexion.
 app.use(express.static(path.join(__dirname, 'public')));
 
 if (!BOT_TOKEN) {
   console.warn('[ATTENTION] DISCORD_BOT_TOKEN est manquant dans .env — les requêtes /api/discord/:id échoueront.');
 }
 if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.warn('[ATTENTION] DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET manquants dans .env — la connexion Discord des joueurs échouera.');
+  console.warn('[ATTENTION] DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET manquants dans .env — la connexion Discord échouera.');
 }
+
+/* ---------------------------------------------------------
+   Sessions (en mémoire) — la connexion Discord est obligatoire
+   pour accéder aux données de l'application.
+   --------------------------------------------------------- */
+
+const sessions = new Map(); // sessionId -> { discordId, pseudo, avatarUrl, expiresAt }
+
+function createSession(user){
+  const sessionId = crypto.randomBytes(32).toString('hex');
+  sessions.set(sessionId, { ...user, expiresAt: Date.now() + SESSION_DURATION_MS });
+  return sessionId;
+}
+
+function getSessionUser(req){
+  const sessionId = req.cookies && req.cookies[SESSION_COOKIE];
+  if (!sessionId) return null;
+  const session = sessions.get(sessionId);
+  if (!session || session.expiresAt < Date.now()) {
+    sessions.delete(sessionId);
+    return null;
+  }
+  return session;
+}
+
+function requireSession(req, res, next){
+  const user = getSessionUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'not_authenticated', message: 'Connexion Discord requise.' });
+  }
+  req.sessionUser = user;
+  next();
+}
+
+function setSessionCookie(req, res, sessionId){
+  res.cookie(SESSION_COOKIE, sessionId, {
+    httpOnly: true,
+    secure: req.secure || req.get('x-forwarded-proto') === 'https',
+    sameSite: 'lax',
+    maxAge: SESSION_DURATION_MS,
+    path: '/',
+  });
+}
+
+// Le front-end interroge cette route au chargement pour savoir si quelqu'un
+// est déjà connecté (et afficher soit l'écran de connexion, soit l'application).
+app.get('/api/session', (req, res) => {
+  const user = getSessionUser(req);
+  if (!user) return res.json({ authenticated: false });
+  res.json({ authenticated: true, user: { pseudo: user.pseudo, avatarUrl: user.avatarUrl, discordId: user.discordId } });
+});
+
+app.get('/auth/discord/logout', (req, res) => {
+  const sessionId = req.cookies && req.cookies[SESSION_COOKIE];
+  if (sessionId) sessions.delete(sessionId);
+  res.clearCookie(SESSION_COOKIE, { path: '/' });
+  res.redirect('/');
+});
 
 /* ---------------------------------------------------------
    Stockage persistant (fichier data.json à côté de server.js)
@@ -62,14 +129,13 @@ function writeState(state) {
   fs.renameSync(tmpFile, DATA_FILE);
 }
 
-// Accès libre : aucune authentification. Toute personne ayant accès au
-// backend peut lire et écrire les données.
-app.get('/api/state', (req, res) => {
+// Lecture et écriture des données : réservées aux personnes connectées via Discord.
+app.get('/api/state', requireSession, (req, res) => {
   const state = readState();
   res.json(state || { players: [], classes: [], groups: [] });
 });
 
-app.put('/api/state', (req, res) => {
+app.put('/api/state', requireSession, (req, res) => {
   const { players, classes, groups } = req.body || {};
   if (!Array.isArray(players) || !Array.isArray(classes) || !Array.isArray(groups)) {
     return res.status(400).json({ error: 'invalid_body', message: 'players, classes et groups doivent être des tableaux.' });
@@ -124,7 +190,7 @@ function uniquePseudo(players, base){
   return candidate;
 }
 
-// Étape 1 : on envoie le joueur s'authentifier sur Discord.
+// Étape 1 : on envoie la personne s'authentifier sur Discord.
 app.get('/auth/discord/login', (req, res) => {
   if (!CLIENT_ID) {
     return res.status(500).send("Connexion Discord non configurée côté serveur (DISCORD_CLIENT_ID manquant).");
@@ -140,8 +206,10 @@ app.get('/auth/discord/login', (req, res) => {
   res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);
 });
 
-// Étape 2 : Discord renvoie ici avec un code. On vérifie l'identité et le rôle,
-// puis on ajoute/actualise automatiquement le joueur dans data.json.
+// Étape 2 : Discord renvoie ici avec un code. On vérifie l'identité et le rôle.
+// Si tout est bon : on ajoute/actualise le joueur ET on ouvre une session
+// (cookie). Si le rôle manque ou que la personne n'est pas membre du serveur,
+// l'accès est refusé et aucune session n'est créée.
 app.get('/auth/discord/callback', async (req, res) => {
   const { code, error: oauthError } = req.query;
   if (oauthError) return res.redirect('/?discord_login=denied&reason=cancelled');
@@ -188,6 +256,7 @@ app.get('/auth/discord/callback', async (req, res) => {
       return res.redirect('/?discord_login=denied&reason=missing_role');
     }
 
+    // Rôle validé : on ajoute/actualise le joueur dans data.json.
     const state = readState() || { players: [], classes: [], groups: [] };
     state.players = state.players || [];
     const avatarUrlStr = avatarUrl(user.id, user.avatar);
@@ -199,15 +268,20 @@ app.get('/auth/discord/callback', async (req, res) => {
       p.discordAvatar = avatarUrlStr;
       p.discordSynced = true;
     } else {
-      state.players.push({
+      p = {
         id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
         pseudo: uniquePseudo(state.players, displayName),
         classId: '', secondClassId: '', status: 'Nouveau joueur',
         discordId: user.id, discordUsername: user.username, discordAvatar: avatarUrlStr,
         discordSynced: true,
-      });
+      };
+      state.players.push(p);
     }
     writeState(state);
+
+    // Rôle validé : on ouvre une session pour cette personne.
+    const sessionId = createSession({ discordId: user.id, pseudo: p.pseudo, avatarUrl: avatarUrlStr });
+    setSessionCookie(req, res, sessionId);
 
     res.redirect('/?discord_login=success');
   } catch (err) {
@@ -216,7 +290,7 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
-app.get('/api/discord/:id', async (req, res) => {
+app.get('/api/discord/:id', requireSession, async (req, res) => {
   const { id } = req.params;
 
   if (!/^\d{17,20}$/.test(id)) {
