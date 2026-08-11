@@ -457,12 +457,14 @@ const I18N = {
     'dash.total_players': 'Joueurs au total',
     'dash.new_players': 'Nouveaux joueurs',
     'dash.groups_created': 'Groupes créés',
-    'dash.unsynced': 'Profils Discord non synchronisés',
     'dash.by_class': 'Répartition par classe',
     'dash.no_class_configured': 'Aucune classe configurée.',
-    'dash.all_synced': 'Tous les profils sont synchronisés.',
-    'dash.sync_btn': 'Synchroniser',
-    'dash.id_label': 'ID',
+    'dash.not_connected': 'Membres Aion 2 non connectés',
+    'dash.check_now': '🔄 Vérifier',
+    'dash.checking': 'Vérification…',
+    'dash.not_checked_yet': "Cliquez sur « Vérifier » pour comparer les membres ayant le rôle Aion 2 avec les joueurs déjà connectés au site.",
+    'dash.everyone_connected': "Tous les membres ayant le rôle Aion 2 se sont déjà connectés au site.",
+    'dash.forbidden_intent': 'Autorisation insuffisante : activez le "Server Members Intent" pour le bot (portail développeur Discord).',
     'players.all_classes': 'Toutes les classes',
     'players.all_statuses': 'Tous les statuts',
     'status.new': 'Nouveau joueur',
@@ -604,12 +606,14 @@ const I18N = {
     'dash.total_players': 'Total players',
     'dash.new_players': 'New players',
     'dash.groups_created': 'Groups created',
-    'dash.unsynced': 'Unsynced Discord profiles',
     'dash.by_class': 'Breakdown by class',
     'dash.no_class_configured': 'No class configured.',
-    'dash.all_synced': 'All profiles are synced.',
-    'dash.sync_btn': 'Sync',
-    'dash.id_label': 'ID',
+    'dash.not_connected': 'Aion 2 members not connected',
+    'dash.check_now': '🔄 Check now',
+    'dash.checking': 'Checking…',
+    'dash.not_checked_yet': 'Click "Check now" to compare members with the Aion 2 role against players already connected to the site.',
+    'dash.everyone_connected': 'Everyone with the Aion 2 role has already connected to the site.',
+    'dash.forbidden_intent': 'Insufficient permission: enable the "Server Members Intent" for the bot (Discord developer portal).',
     'players.all_classes': 'All classes',
     'players.all_statuses': 'All statuses',
     'status.new': 'New player',
@@ -1113,6 +1117,10 @@ function publishGroupToDiscord(groupId){
 ========================================================= */
 
 function render(){
+  renderUI();
+  if (SESSION_CHECKED && SESSION_USER) scheduleSave();
+}
+function renderUI(){
   document.title = LANG === 'en' ? 'Wingmate — Group management' : 'Wingmate — Gestion des groupes';
   const root = document.getElementById('gm-app');
   if (!SESSION_CHECKED) {
@@ -1126,7 +1134,6 @@ function render(){
   }
   root.innerHTML = renderShell();
   bindEvents();
-  scheduleSave();
 }
 
 function renderLoadingScreen(){
@@ -1253,7 +1260,6 @@ function renderTabContent(){
 function renderDashboard(){
   const total = PLAYERS.length;
   const nouveaux = PLAYERS.filter(p => p.status === 'Nouveau joueur').length;
-  const unsynced = PLAYERS.filter(p => !p.discordSynced).length;
   const groupsCount = GROUPS.length;
 
   const byClass = CLASSES.map(c => ({ c, count: PLAYERS.filter(p => p.classId === c.id || p.secondClassId === c.id).length }));
@@ -1264,7 +1270,7 @@ function renderDashboard(){
       ${statCard(total, t('dash.total_players'))}
       ${statCard(nouveaux, t('dash.new_players'))}
       ${statCard(groupsCount, t('dash.groups_created'))}
-      ${statCard(unsynced, t('dash.unsynced'))}
+      ${statCard(UNCONNECTED_INFO ? UNCONNECTED_INFO.notConnected.length : '—', t('dash.not_connected'))}
     </div>
     <div class="gm-panel">
       <h3 style="margin:0 0 12px;font-size:14px;">${t('dash.by_class')}</h3>
@@ -1276,24 +1282,55 @@ function renderDashboard(){
         </div>`).join('') || `<div class="gm-note">${t('dash.no_class_configured')}</div>`}
     </div>
     <div class="gm-panel" style="margin-top:16px;">
-      <h3 style="margin:0 0 12px;font-size:14px;">${t('dash.unsynced')}</h3>
-      ${unsynced === 0 ? `<div class="gm-note">${t('dash.all_synced')}</div>` : `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <h3 style="margin:0;font-size:14px;">${t('dash.not_connected')}</h3>
+        <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="check-unconnected" ${UNCONNECTED_LOADING?'disabled':''}>${UNCONNECTED_LOADING ? t('dash.checking') : t('dash.check_now')}</button>
+      </div>
+      ${!UNCONNECTED_INFO ? `<div class="gm-note">${t('dash.not_checked_yet')}</div>` : (
+        UNCONNECTED_INFO.notConnected.length === 0 ? `<div class="gm-note">${t('dash.everyone_connected')}</div>` : `
         <div class="gm-players-grid">
-          ${PLAYERS.filter(p=>!p.discordSynced).map(p => `
+          ${UNCONNECTED_INFO.notConnected.map(m => `
             <div class="gm-player-card gm-panel" style="padding:12px;">
               <div class="gm-player-top">
-                ${avatarHtml(p, 38)}
-                <div class="gm-player-names"><div class="gm-player-pseudo">${esc(p.pseudo)}</div><div class="gm-player-discord">${t('dash.id_label')}: ${esc(p.discordId||'—')}</div></div>
+                ${m.avatarUrl ? `<img class="gm-avatar" style="width:38px;height:38px" src="${esc(m.avatarUrl)}">` : `<div class="gm-avatar-fallback" style="width:38px;height:38px">${esc((m.displayName||'?').slice(0,2).toUpperCase())}</div>`}
+                <div class="gm-player-names"><div class="gm-player-pseudo">${esc(m.displayName)}</div><div class="gm-player-discord">@${esc(m.username)}</div></div>
               </div>
-              <button class="gm-btn gm-btn-sm gm-btn-ghost" style="margin-top:10px;width:100%" data-action="edit-player" data-id="${p.id}">${t('dash.sync_btn')}</button>
             </div>`).join('')}
-        </div>`}
+        </div>`
+      )}
     </div>
   `;
 }
 
 function statCard(value, label){
   return `<div class="gm-panel gm-stat-card"><div class="gm-stat-value gm-mono">${value}</div><div class="gm-stat-label">${esc(label)}</div></div>`;
+}
+
+let UNCONNECTED_INFO = null;
+let UNCONNECTED_LOADING = false;
+function checkUnconnectedMembers(){
+  if (!DISCORD_API_BASE_URL) { toast(t('toast.connect_configure_backend'), 'danger'); return; }
+  UNCONNECTED_LOADING = true;
+  render();
+  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/discord/unconnected-members`, { credentials: 'same-origin' })
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      UNCONNECTED_LOADING = false;
+      if (!res.ok) {
+        const messages = {
+          guild_not_configured: t('toast.discord_error_guild_not_configured'),
+          role_not_found: t('toast.discord_error_role_not_found'),
+          forbidden: t('dash.forbidden_intent'),
+          connection_error: 'toast.discord_error_generic',
+        };
+        toast(data.message || messages[data.error] || t('toast.discord_error_generic'), 'danger');
+        render();
+        return;
+      }
+      UNCONNECTED_INFO = data;
+      render();
+    })
+    .catch(() => { UNCONNECTED_LOADING = false; toast(t('toast.discord_error_generic'), 'danger'); render(); });
 }
 
 /* =========================================================
@@ -1696,7 +1733,7 @@ function bindEvents(){
          'new-group','delete-group','remove-slot','publish-group','open-event-kind','pick-event-kind',
          'confirm-modal','save-player','save-class','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
-         'connect-discord','logout-discord','confirm-onboarding','set-lang'].includes(action)) {
+         'connect-discord','logout-discord','confirm-onboarding','set-lang','check-unconnected'].includes(action)) {
       el.addEventListener('click', (e) => {
         handleClick(action, el, e);
       });
@@ -1736,6 +1773,7 @@ function handleClick(action, el, e){
     case 'logout-discord': logoutDiscord(); break;
     case 'confirm-onboarding': confirmOnboarding(); break;
     case 'set-lang': setLang(el.getAttribute('data-lang')); break;
+    case 'check-unconnected': checkUnconnectedMembers(); break;
   }
 }
 
@@ -1795,11 +1833,62 @@ function initApp(){
     handleDiscordLoginRedirect();
     if (SESSION_USER) {
       loadStateThenRender();
+      startBackgroundSync();
     } else {
       render();
     }
   });
 }
+
+// Mises à jour en temps réel (Server-Sent Events) : permet de voir sur le
+// site les inscriptions/désinscriptions faites depuis Discord (boutons
+// Rejoindre/Quitter), les publications, etc. dès qu'elles arrivent, sans
+// recharger la page. On applique les changements reçus seulement si aucune
+// fenêtre n'est ouverte et qu'aucun champ n'est en cours de saisie, pour ne
+// jamais interrompre une modification en cours.
+let LIVE_EVENT_SOURCE = null;
+const FALLBACK_POLL_INTERVAL_MS = 45000; // filet de sécurité si le flux temps réel se coupe
+
+function applyLiveState(data){
+  if (!data || MODAL) return;
+  const active = document.activeElement;
+  if (active && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName)) return;
+  PLAYERS = data.players || PLAYERS;
+  CLASSES = (data.classes && data.classes.length) ? data.classes : CLASSES;
+  GROUPS = data.groups || GROUPS;
+  LAST_SAVE_STATUS = 'ok';
+  renderUI();
+}
+
+function startBackgroundSync(){
+  if (!DISCORD_API_BASE_URL || typeof EventSource === 'undefined') { startFallbackPolling(); return; }
+  try {
+    const es = new EventSource(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/events`, { withCredentials: true });
+    es.onmessage = (evt) => {
+      try { applyLiveState(JSON.parse(evt.data)); } catch (e) {}
+    };
+    es.onerror = () => { LAST_SAVE_STATUS = 'error'; };
+    LIVE_EVENT_SOURCE = es;
+  } catch (e) {
+    startFallbackPolling();
+  }
+  // Filet de sécurité en complément (couvre le cas rare où le flux temps réel
+  // se coupe silencieusement sans déclencher onerror).
+  startFallbackPolling();
+}
+
+function startFallbackPolling(){
+  setInterval(() => {
+    if (!SESSION_USER || !DISCORD_API_BASE_URL || MODAL) return;
+    const active = document.activeElement;
+    if (active && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName)) return;
+    fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`, { credentials: 'same-origin' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => applyLiveState(data))
+      .catch(() => {});
+  }, FALLBACK_POLL_INTERVAL_MS);
+}
+
 initApp();
 
 })();
