@@ -185,25 +185,58 @@ Pour un bot toujours actif, deux options :
   qui visite votre site toutes les 10 minutes pour l'empêcher de s'endormir.
 - Passer sur un plan Render payant (pas de mise en veille).
 
+## ⚠️ Stockage persistant obligatoire en production (Upstash Redis, gratuit)
+
+**C'est l'étape la plus importante à ne pas sauter si votre site est en
+ligne (Render, ou tout autre hébergeur avec disque non-persistant).**
+
+Par défaut, ce backend sauvegarde les joueurs, les groupes et les connexions
+dans un simple fichier local. Ça fonctionne très bien en local sur votre
+PC. Mais sur le plan gratuit de Render (et la plupart des hébergeurs
+gratuits), **le disque est effacé à chaque redéploiement** — dès que vous
+mettez à jour un fichier sur GitHub, tout redémarre de zéro : plus de
+joueurs, plus de groupes, et tout le monde doit se reconnecter à Discord.
+
+La solution : une base de données externe gratuite qui, elle, ne redémarre
+jamais avec votre serveur. [Upstash](https://upstash.com) propose une base
+Redis gratuite en permanence (pas seulement un essai), sans carte bancaire.
+
+### Configuration (5 minutes)
+
+1. Allez sur https://upstash.com et créez un compte gratuit (avec Google/
+   GitHub ou un email).
+2. Cliquez sur **Create Database**. Donnez-lui un nom (ex. `wingmate`),
+   choisissez une région proche de vous, laissez le reste par défaut.
+3. Une fois créée, ouvrez la base et cherchez la section **REST API**
+   (parfois sous un onglet "Details" ou "Connect"). Vous y trouverez deux
+   valeurs :
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+4. Copiez ces deux valeurs dans votre `.env` local **et** dans les variables
+   d'environnement de Render (onglet Environment de votre service).
+5. Redémarrez le backend (`npm start` en local, ou laissez Render
+   redéployer). Vérifiez dans les logs qu'il n'y a plus le message
+   d'avertissement "stockage local utilisé".
+
+À partir de là, joueurs, groupes ET connexions survivent à tous les
+redéploiements, mises en veille, et redémarrages du service.
+
 ## Sauvegarde automatique des joueurs et des groupes
 
 Ce backend sauvegarde aussi automatiquement toutes les données de
-l'application (joueurs, classes, groupes) dans un fichier `data.json` créé
-à côté de `server.js`, dès que l'URL du backend est configurée dans
-« Wingmate ».
+l'application (joueurs, classes, groupes) dès que l'URL du backend est
+configurée dans « Wingmate ».
 
 - `GET /api/state` renvoie l'état actuel.
 - `PUT /api/state` enregistre un nouvel état (l'app l'appelle automatiquement
   environ 600 ms après chaque modification).
 
-Au premier lancement, `data.json` n'existe pas encore : l'application garde
+Au premier lancement, aucune donnée n'existe encore : l'application garde
 ses données de démonstration et les envoie immédiatement au backend pour
-créer le fichier. À chaque rechargement de la page suivant, vos vraies
-données sont rechargées depuis ce fichier — plus rien n'est perdu au F5.
-
-**Sauvegardez ce fichier `data.json`** (copie régulière, ou dossier
-synchronisé) si vous voulez pouvoir restaurer vos données en cas de
-problème : il n'y a pas d'autre copie.
+les initialiser. À chaque rechargement de la page suivant, vos vraies
+données sont rechargées — plus rien n'est perdu au F5 (et, avec Upstash
+configuré comme ci-dessus, plus rien n'est perdu non plus aux
+redéploiements).
 
 ## Déploiement en ligne avec un nom de domaine OVH
 
@@ -235,8 +268,14 @@ pointez votre domaine OVH dessus.
    DISCORD_REQUIRED_ROLE_NAME=Aion 2
    DISCORD_CLIENT_ID=...
    DISCORD_CLIENT_SECRET=...
+   DISCORD_ANNOUNCE_CHANNEL_ID=...
+   UPSTASH_REDIS_REST_URL=...
+   UPSTASH_REDIS_REST_TOKEN=...
    CORS_ORIGIN=*
    ```
+   **N'oubliez pas les deux variables Upstash** (voir la section dédiée
+   plus haut) — sans elles, vos joueurs et vos connexions seront effacés à
+   chaque futur redéploiement.
    *(pas besoin de `PORT`, Render le fournit automatiquement)*
 5. Cliquez sur **Create Web Service**. Après quelques minutes, Render vous
    donne une adresse du type `https://guilde-manager.onrender.com` — ouvrez-la

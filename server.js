@@ -30,7 +30,6 @@ const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
 const REQUIRED_ROLE_NAME = process.env.DISCORD_REQUIRED_ROLE_NAME || 'Aion 2';
 const DEFAULT_ANNOUNCE_CHANNEL_ID = process.env.DISCORD_ANNOUNCE_CHANNEL_ID || '';
 const DISCORD_API = 'https://discord.com/api/v10';
-const DATA_FILE = path.join(__dirname, 'data.json');
 const SESSION_COOKIE = 'wingmate_session';
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 jours
 
@@ -56,31 +55,115 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 }
 
 /* ---------------------------------------------------------
-   Sessions (en mémoire) — la connexion Discord est obligatoire
-   pour accéder aux données de l'application.
+   Stockage clé/valeur persistant.
+   Utilise Upstash Redis (gratuit, survit aux redéploiements) si configuré
+   via UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN. Sinon, retombe sur
+   un fichier local (pratique en développement, mais PERDU à chaque
+   redéploiement sur l'hébergement gratuit de Render — voir le README).
    --------------------------------------------------------- */
 
-const sessions = new Map(); // sessionId -> { discordId, pseudo, avatarUrl, expiresAt }
+const UPSTASH_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/$/, '');
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const USE_REDIS = !!(UPSTASH_URL && UPSTASH_TOKEN);
 
-function createSession(user){
+if (!USE_REDIS) {
+  console.warn('[ATTENTION] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN manquants — stockage local utilisé. Les joueurs, groupes ET les connexions seront perdus à chaque redéploiement sur le plan gratuit de Render. Voir le README pour brancher une base gratuite persistante (Upstash).');
+}
+
+function localKeyPath(key){
+  const safe = key.replace(/[^a-zA-Z0-9_:-]/g, '_');
+  return path.join(__dirname, `.localstore-${safe}.json`);
+}
+
+async function kvGet(key){
+  if (USE_REDIS) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/get/${encodeURIComponent(key)}`, {
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.result === undefined ? null : data.result;
+    } catch (e) {
+      console.error('Upstash GET échoué pour', key, e.message);
+      return null;
+    }
+  }
+  try {
+    return fs.readFileSync(localKeyPath(key), 'utf8');
+  } catch (e) {
+    return null;
+  }
+}
+
+async function kvSet(key, value){
+  if (USE_REDIS) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/set/${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+        body: value,
+      });
+      return res.ok;
+    } catch (e) {
+      console.error('Upstash SET échoué pour', key, e.message);
+      return false;
+    }
+  }
+  try {
+    const p = localKeyPath(key);
+    const tmp = p + '.tmp';
+    fs.writeFileSync(tmp, value, 'utf8');
+    fs.renameSync(tmp, p);
+    return true;
+  } catch (e) {
+    console.error('Écriture locale échouée pour', key, e.message);
+    return false;
+  }
+}
+
+async function kvDel(key){
+  if (USE_REDIS) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/del/${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+      });
+      return res.ok;
+    } catch (e) { return false; }
+  }
+  try { fs.unlinkSync(localKeyPath(key)); return true; } catch (e) { return false; }
+}
+
+/* ---------------------------------------------------------
+   Sessions — la connexion Discord est obligatoire pour accéder aux
+   données de l'application. Persistées (voir ci-dessus) pour survivre
+   aux redémarrages/redéploiements du serveur.
+   --------------------------------------------------------- */
+
+async function createSession(user){
   const sessionId = crypto.randomBytes(32).toString('hex');
-  sessions.set(sessionId, { ...user, expiresAt: Date.now() + SESSION_DURATION_MS });
+  const session = { ...user, expiresAt: Date.now() + SESSION_DURATION_MS };
+  await kvSet(`wingmate:session:${sessionId}`, JSON.stringify(session));
   return sessionId;
 }
 
-function getSessionUser(req){
+async function getSessionUser(req){
   const sessionId = req.cookies && req.cookies[SESSION_COOKIE];
   if (!sessionId) return null;
-  const session = sessions.get(sessionId);
+  const raw = await kvGet(`wingmate:session:${sessionId}`);
+  if (!raw) return null;
+  let session;
+  try { session = JSON.parse(raw); } catch (e) { return null; }
   if (!session || session.expiresAt < Date.now()) {
-    sessions.delete(sessionId);
+    await kvDel(`wingmate:session:${sessionId}`);
     return null;
   }
   return session;
 }
 
-function requireSession(req, res, next){
-  const user = getSessionUser(req);
+async function requireSession(req, res, next){
+  const user = await getSessionUser(req);
   if (!user) {
     return res.status(401).json({ error: 'not_authenticated', message: 'Connexion Discord requise.' });
   }
@@ -100,57 +183,80 @@ function setSessionCookie(req, res, sessionId){
 
 // Le front-end interroge cette route au chargement pour savoir si quelqu'un
 // est déjà connecté (et afficher soit l'écran de connexion, soit l'application).
-app.get('/api/session', (req, res) => {
-  const user = getSessionUser(req);
+app.get('/api/session', async (req, res) => {
+  const user = await getSessionUser(req);
   if (!user) return res.json({ authenticated: false });
   res.json({ authenticated: true, user: { pseudo: user.pseudo, avatarUrl: user.avatarUrl, discordId: user.discordId } });
 });
 
-app.get('/auth/discord/logout', (req, res) => {
+app.get('/auth/discord/logout', async (req, res) => {
   const sessionId = req.cookies && req.cookies[SESSION_COOKIE];
-  if (sessionId) sessions.delete(sessionId);
+  if (sessionId) await kvDel(`wingmate:session:${sessionId}`);
   res.clearCookie(SESSION_COOKIE, { path: '/' });
   res.redirect('/');
 });
 
 /* ---------------------------------------------------------
-   Stockage persistant (fichier data.json à côté de server.js)
+   Données de l'application (joueurs, classes, groupes)
    --------------------------------------------------------- */
 
-function readState() {
-  try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(raw);
-  } catch (e) {
-    return null; // fichier absent ou illisible = pas encore de données sauvegardées
+async function readState(){
+  const raw = await kvGet('wingmate:state');
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+// Connexions "live" (Server-Sent Events) : chaque onglet ouvert du site
+// garde une connexion HTTP ouverte ici, et reçoit un message instantané
+// dès que les données changent (sauvegarde depuis le site, inscription
+// via un bouton Discord, publication, suppression...).
+const sseClients = new Set();
+function broadcastState(state) {
+  const payload = `data: ${JSON.stringify({ players: state.players || [], classes: state.classes || [], groups: state.groups || [] })}\n\n`;
+  for (const client of sseClients) {
+    try { client.write(payload); } catch (e) { sseClients.delete(client); }
   }
 }
 
-function writeState(state) {
-  // Écriture "atomique" : on écrit dans un fichier temporaire puis on renomme,
-  // pour éviter de corrompre data.json si le processus est interrompu en cours d'écriture.
-  const tmpFile = DATA_FILE + '.tmp';
-  fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), 'utf8');
-  fs.renameSync(tmpFile, DATA_FILE);
+async function writeState(state){
+  await kvSet('wingmate:state', JSON.stringify(state));
+  broadcastState(state);
 }
 
+// Flux temps réel : le site s'y connecte une fois et reçoit les mises à jour
+// au fil de l'eau, sans avoir à revérifier régulièrement de son côté.
+app.get('/api/events', requireSession, (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  if (res.flushHeaders) res.flushHeaders();
+  res.write('\n');
+  sseClients.add(res);
+  // Message de battement de cœur régulier pour éviter que le proxy (Render)
+  // ne coupe la connexion pour cause d'inactivité.
+  const heartbeat = setInterval(() => { try { res.write(': heartbeat\n\n'); } catch (e) {} }, 20000);
+  req.on('close', () => { clearInterval(heartbeat); sseClients.delete(res); });
+});
+
 // Lecture et écriture des données : réservées aux personnes connectées via Discord.
-app.get('/api/state', requireSession, (req, res) => {
-  const state = readState();
+app.get('/api/state', requireSession, async (req, res) => {
+  const state = await readState();
   res.json(state || { players: [], classes: [], groups: [] });
 });
 
-app.put('/api/state', requireSession, (req, res) => {
+app.put('/api/state', requireSession, async (req, res) => {
   const { players, classes, groups } = req.body || {};
   if (!Array.isArray(players) || !Array.isArray(classes) || !Array.isArray(groups)) {
     return res.status(400).json({ error: 'invalid_body', message: 'players, classes et groups doivent être des tableaux.' });
   }
   try {
-    writeState({ players, classes, groups, savedAt: new Date().toISOString() });
+    await writeState({ players, classes, groups, savedAt: new Date().toISOString() });
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'write_failed', message: 'Impossible d\'écrire le fichier de sauvegarde.' });
+    res.status(500).json({ error: 'write_failed', message: 'Impossible d\'écrire les données.' });
   }
 });
 
@@ -186,6 +292,56 @@ async function getRoleByName(roleName){
   return roles.find(r => r.name.toLowerCase() === roleName.toLowerCase()) || null;
 }
 
+async function fetchAllGuildMembers(guildId) {
+  let members = [];
+  let after = '0';
+  for (let i = 0; i < 10; i++) { // jusqu'à 10 000 membres (10 pages de 1000)
+    const res = await discordFetch(`/guilds/${guildId}/members?limit=1000&after=${after}`);
+    if (!res.ok) return { error: true, status: res.status };
+    const batch = await res.json();
+    members = members.concat(batch);
+    if (batch.length < 1000) break;
+    after = batch[batch.length - 1].user.id;
+  }
+  return { error: false, members };
+}
+
+// Compare les membres Discord ayant le rôle requis avec les joueurs déjà
+// connus du site, pour lister ceux qui n'ont encore jamais rejoint Wingmate.
+app.get('/api/discord/unconnected-members', requireSession, async (req, res) => {
+  if (!GUILD_ID) {
+    return res.status(400).json({ error: 'guild_not_configured', message: "DISCORD_GUILD_ID doit être renseigné dans .env." });
+  }
+  try {
+    const role = await getRoleByName(REQUIRED_ROLE_NAME);
+    if (!role) {
+      return res.status(404).json({ error: 'role_not_found', message: `Aucun rôle « ${REQUIRED_ROLE_NAME} » trouvé sur le serveur.` });
+    }
+    const result = await fetchAllGuildMembers(GUILD_ID);
+    if (result.error) {
+      if (result.status === 403) {
+        return res.status(502).json({ error: 'forbidden', message: 'Autorisation insuffisante : activez le "Server Members Intent" pour le bot.' });
+      }
+      return res.status(502).json({ error: 'connection_error', message: `Erreur de connexion à Discord (code ${result.status}).` });
+    }
+    const state = (await readState()) || { players: [] };
+    const knownIds = new Set((state.players || []).map(p => p.discordId));
+    const withRole = result.members.filter(m => m.user && !m.user.bot && Array.isArray(m.roles) && m.roles.includes(role.id));
+    const notConnected = withRole
+      .filter(m => !knownIds.has(m.user.id))
+      .map(m => ({
+        id: m.user.id,
+        username: m.user.username,
+        displayName: m.nick || m.user.global_name || m.user.username,
+        avatarUrl: avatarUrl(m.user.id, m.user.avatar),
+      }));
+    res.json({ totalWithRole: withRole.length, notConnected });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'unknown', message: 'Erreur lors de la vérification.' });
+  }
+});
+
 function uniquePseudo(players, base){
   let candidate = base;
   let i = 2;
@@ -209,7 +365,7 @@ function upsertPlayerFromDiscord(state, discordUser, member){
     p.discordSynced = true;
     return p;
   }
-  const displayName = (member && member.nick) || discordUser.global_name || discordUser.globalName || discordUser.username;
+  const displayName = (member && (member.nick || member.nickname)) || discordUser.global_name || discordUser.globalName || discordUser.username;
   p = {
     id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     pseudo: uniquePseudo(state.players, displayName),
@@ -279,7 +435,7 @@ discordClient.on('interactionCreate', async (interaction) => {
   const [action, groupId] = interaction.customId.split(':');
   if (action !== 'join' && action !== 'leave') return;
 
-  const state = readState() || { players: [], classes: [], groups: [] };
+  const state = (await readState()) || { players: [], classes: [], groups: [] };
   state.players = state.players || [];
   state.groups = state.groups || [];
   const group = state.groups.find(g => g.id === groupId);
@@ -287,41 +443,46 @@ discordClient.on('interactionCreate', async (interaction) => {
     return interaction.reply({ content: "Ce groupe n'existe plus.", ephemeral: true });
   }
 
-  // Vérification du rôle requis.
+  // Récupération fraîche du membre (fiable, ne dépend pas du cache du bot) et
+  // vérification du rôle requis.
+  let member;
+  try {
+    member = await interaction.guild.members.fetch(interaction.user.id);
+  } catch (e) {
+    return interaction.reply({ content: 'Impossible de vérifier votre profil Discord. Réessayez.', ephemeral: true });
+  }
   let role;
   try {
     role = await getRoleByName(REQUIRED_ROLE_NAME);
   } catch (e) {
     return interaction.reply({ content: 'Erreur de vérification du rôle. Réessayez plus tard.', ephemeral: true });
   }
-  const hasRole = role && interaction.member && interaction.member.roles && interaction.member.roles.cache
-    ? interaction.member.roles.cache.has(role.id)
-    : false;
+  const hasRole = role && member.roles.cache.has(role.id);
   if (!hasRole) {
     return interaction.reply({ content: `Vous devez avoir le rôle « ${REQUIRED_ROLE_NAME} » pour vous inscrire.`, ephemeral: true });
   }
 
-  const player = upsertPlayerFromDiscord(state, interaction.user, interaction.member);
+  const player = upsertPlayerFromDiscord(state, interaction.user, member);
 
   if (action === 'leave') {
     const slot = group.slots.find(s => s.playerId === player.id);
     if (!slot) {
-      writeState(state);
+      await writeState(state);
       return interaction.reply({ content: "Vous n'êtes pas inscrit(e) à ce groupe.", ephemeral: true });
     }
     slot.playerId = null;
-    writeState(state);
+    await writeState(state);
     await updateGroupMessage(group, state);
     return interaction.reply({ content: 'Vous avez quitté le groupe.', ephemeral: true });
   }
 
   // action === 'join'
   if (group.slots.some(s => s.playerId === player.id)) {
-    writeState(state);
+    await writeState(state);
     return interaction.reply({ content: 'Vous êtes déjà inscrit(e) à ce groupe.', ephemeral: true });
   }
   if (!player.classId) {
-    writeState(state);
+    await writeState(state);
     return interaction.reply({ content: "Merci de choisir votre classe sur le site Wingmate avant de rejoindre un groupe.", ephemeral: true });
   }
   if (RESTRICTED_CLASS_IDS.includes(player.classId)) {
@@ -331,17 +492,17 @@ discordClient.on('interactionCreate', async (interaction) => {
       return pl && pl.classId === player.classId;
     });
     if (conflict) {
-      writeState(state);
+      await writeState(state);
       return interaction.reply({ content: `Un(e) ${classDisplayName(state, player.classId)} est déjà inscrit(e) dans ce groupe (une seule personne de cette classe autorisée).`, ephemeral: true });
     }
   }
   const freeIdx = group.slots.findIndex(s => !s.playerId);
   if (freeIdx === -1) {
-    writeState(state);
+    await writeState(state);
     return interaction.reply({ content: 'Ce groupe est complet.', ephemeral: true });
   }
   group.slots[freeIdx].playerId = player.id;
-  writeState(state);
+  await writeState(state);
   await updateGroupMessage(group, state);
   return interaction.reply({ content: 'Vous avez rejoint le groupe !', ephemeral: true });
 });
@@ -361,7 +522,7 @@ app.post('/api/groups/:id/publish', requireSession, async (req, res) => {
   if (!discordClient.isReady()) {
     return res.status(503).json({ error: 'bot_offline', message: "Le bot Discord n'est pas connecté pour le moment. Réessayez dans quelques instants." });
   }
-  const state = readState() || { players: [], classes: [], groups: [] };
+  const state = (await readState()) || { players: [], classes: [], groups: [] };
   const group = (state.groups || []).find(g => g.id === req.params.id);
   if (!group) return res.status(404).json({ error: 'not_found', message: 'Groupe introuvable.' });
 
@@ -395,7 +556,7 @@ app.post('/api/groups/:id/publish', requireSession, async (req, res) => {
     }
     group.discordChannelId = targetChannelId;
     group.discordMessageId = message.id;
-    writeState(state);
+    await writeState(state);
     res.json({ ok: true, messageId: message.id, channelId: targetChannelId });
   } catch (err) {
     console.error(err);
@@ -405,7 +566,7 @@ app.post('/api/groups/:id/publish', requireSession, async (req, res) => {
 
 // Supprime un groupe/event ET son annonce Discord associée (si publiée).
 app.delete('/api/groups/:id', requireSession, async (req, res) => {
-  const state = readState() || { players: [], classes: [], groups: [] };
+  const state = (await readState()) || { players: [], classes: [], groups: [] };
   state.groups = state.groups || [];
   const group = state.groups.find(g => g.id === req.params.id);
   if (!group) return res.status(404).json({ error: 'not_found', message: 'Groupe introuvable.' });
@@ -423,7 +584,7 @@ app.delete('/api/groups/:id', requireSession, async (req, res) => {
   }
 
   state.groups = state.groups.filter(g => g.id !== req.params.id);
-  writeState(state);
+  await writeState(state);
   res.json({ ok: true });
 });
 
@@ -498,16 +659,16 @@ app.get('/auth/discord/callback', async (req, res) => {
     // classes par défaut (elles vivent côté site). Un tableau vide serait
     // ensuite considéré comme "sauvegardé" et écraserait les classes par
     // défaut du site au chargement suivant.
-    const state = readState() || { players: [] };
+    const state = (await readState()) || { players: [] };
     state.groups = state.groups || [];
     state.players = state.players || [];
 
     const p = upsertPlayerFromDiscord(state, user, member);
-    writeState(state);
+    await writeState(state);
 
     // Rôle validé : on ouvre une session pour cette personne.
     const avatarUrlStr = avatarUrl(user.id, user.avatar);
-    const sessionId = createSession({ discordId: user.id, pseudo: p.pseudo, avatarUrl: avatarUrlStr });
+    const sessionId = await createSession({ discordId: user.id, pseudo: p.pseudo, avatarUrl: avatarUrlStr });
     setSessionCookie(req, res, sessionId);
 
     res.redirect('/?discord_login=success');
