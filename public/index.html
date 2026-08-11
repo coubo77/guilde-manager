@@ -241,6 +241,11 @@ html, body {
 .gm-group-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .gm-group-name { font-family: 'Cinzel'; font-size: 16px; font-weight: 600; background: transparent; border: none; color: var(--text); outline: none; border-bottom: 1px dashed transparent; }
 .gm-group-name:focus { border-bottom: 1px dashed var(--border-strong); }
+.gm-group-meta-inputs { display: flex; gap: 8px; flex-wrap: wrap; }
+.gm-group-meta-inputs input {
+  background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 9px; border-radius: 8px; font-size: 12px; outline: none; font-family:'Inter';
+}
 .gm-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 @media (max-width: 900px) { .gm-slots { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .gm-slots { grid-template-columns: 1fr; } }
@@ -433,6 +438,7 @@ const I18N = {
     'nav.players': 'Joueurs',
     'nav.pve': 'PvE',
     'nav.pvp': 'PvP',
+    'nav.events': 'Créer un event',
     'sidebar.logout_title': 'Se déconnecter',
     'sidebar.discord': 'Discord',
     'topbar.dashboard.title': 'Tableau de bord',
@@ -445,6 +451,8 @@ const I18N = {
     'topbar.pve.sub': 'Composer les groupes pour les activités PvE',
     'topbar.pvp.title': 'PvP',
     'topbar.pvp.sub': 'Composer les groupes pour les activités PvP',
+    'topbar.events.title': 'Créer un event',
+    'topbar.events.sub': 'Planifier une sortie et la publier sur Discord',
     'players.search_placeholder': 'Rechercher un pseudo…',
     'dash.total_players': 'Joueurs au total',
     'dash.new_players': 'Nouveaux joueurs',
@@ -476,6 +484,8 @@ const I18N = {
     'groups.create_pvp': '+ Créer un groupe PvP',
     'groups.empty_pve': 'Aucun groupe PvE pour le moment.',
     'groups.empty_pvp': 'Aucun groupe PvP pour le moment.',
+    'groups.create_event': '+ Créer un event',
+    'groups.empty_event': "Aucun event pour le moment.",
     'groups.slot_num': 'Emplacement {n}',
     'groups.choose_player': '— Choisir un joueur —',
     'groups.already_in_group': '(déjà dans ce groupe)',
@@ -485,6 +495,17 @@ const I18N = {
     'groups.of_five_players': '/ 5 joueurs',
     'groups.new_count': 'Nouveaux',
     'groups.delete': 'Supprimer',
+    'groups.activity_placeholder': 'Activité / donjon (facultatif)',
+    'groups.publish': '📣 Publier sur Discord',
+    'groups.republish': '📣 Republier sur Discord',
+    'groups.publishing': 'Publication…',
+    'groups.published': '✓ Publié sur Discord',
+    'toast.publish_success': 'Groupe publié sur Discord.',
+    'toast.publish_channel_missing': "Aucun salon Discord configuré côté serveur (DISCORD_ANNOUNCE_CHANNEL_ID).",
+    'toast.publish_bot_offline': "Le bot Discord n'est pas connecté pour le moment. Réessayez dans quelques instants.",
+    'toast.publish_not_found': 'Ce groupe est introuvable côté serveur.',
+    'toast.publish_invalid_channel': "Le salon configuré n'existe pas ou n'accepte pas de messages.",
+    'toast.publish_failed': 'Échec de la publication sur Discord.',
     'onboarding.title': 'Bienvenue dans la guilde !',
     'onboarding.subtitle': 'Avant de continuer, complétez votre profil.',
     'onboarding.class_label': 'Votre classe *',
@@ -560,6 +581,7 @@ const I18N = {
     'nav.players': 'Players',
     'nav.pve': 'PvE',
     'nav.pvp': 'PvP',
+    'nav.events': 'Create an event',
     'sidebar.logout_title': 'Log out',
     'sidebar.discord': 'Discord',
     'topbar.dashboard.title': 'Dashboard',
@@ -572,6 +594,8 @@ const I18N = {
     'topbar.pve.sub': 'Build groups for PvE activities',
     'topbar.pvp.title': 'PvP',
     'topbar.pvp.sub': 'Build groups for PvP activities',
+    'topbar.events.title': 'Create an event',
+    'topbar.events.sub': 'Plan an outing and publish it to Discord',
     'players.search_placeholder': 'Search a nickname…',
     'dash.total_players': 'Total players',
     'dash.new_players': 'New players',
@@ -603,6 +627,8 @@ const I18N = {
     'groups.create_pvp': '+ Create a PvP group',
     'groups.empty_pve': 'No PvE group yet.',
     'groups.empty_pvp': 'No PvP group yet.',
+    'groups.create_event': '+ Create an event',
+    'groups.empty_event': 'No event yet.',
     'groups.slot_num': 'Slot {n}',
     'groups.choose_player': '— Choose a player —',
     'groups.already_in_group': '(already in this group)',
@@ -612,6 +638,17 @@ const I18N = {
     'groups.of_five_players': '/ 5 players',
     'groups.new_count': 'New',
     'groups.delete': 'Delete',
+    'groups.activity_placeholder': 'Activity / dungeon (optional)',
+    'groups.publish': '📣 Publish to Discord',
+    'groups.republish': '📣 Republish to Discord',
+    'groups.publishing': 'Publishing…',
+    'groups.published': '✓ Published to Discord',
+    'toast.publish_success': 'Group published to Discord.',
+    'toast.publish_channel_missing': 'No Discord channel configured on the server (DISCORD_ANNOUNCE_CHANNEL_ID).',
+    'toast.publish_bot_offline': 'The Discord bot is not connected right now. Try again in a moment.',
+    'toast.publish_not_found': 'This group could not be found on the server.',
+    'toast.publish_invalid_channel': "The configured channel doesn't exist or can't receive messages.",
+    'toast.publish_failed': 'Failed to publish to Discord.',
     'onboarding.title': 'Welcome to the guild!',
     'onboarding.subtitle': 'Before continuing, complete your profile.',
     'onboarding.class_label': 'Your class *',
@@ -977,7 +1014,8 @@ function requestDeleteClass(classId){
 
 function createGroup(type){
   const count = GROUPS.filter(g => g.type === type).length;
-  const g = { id: uid('g'), type, name: 'Groupe ' + (count + 1),
+  const defaultName = (type === 'event' ? 'Event ' : 'Groupe ') + (count + 1);
+  const g = { id: uid('g'), type, name: defaultName, activity: '', date: '', time: '',
     slots: [0,1,2,3,4].map(() => ({ playerId: null })) };
   GROUPS.push(g);
   toast(t('toast.group_created'));
@@ -1003,6 +1041,44 @@ function updateGroupField(groupId, field, value){
   const g = GROUPS.find(x => x.id === groupId);
   g[field] = value;
   render();
+}
+
+let PUBLISHING_GROUP_ID = null;
+function publishGroupToDiscord(groupId){
+  if (!DISCORD_API_BASE_URL) { toast(t('toast.connect_configure_backend'), 'danger'); return; }
+  PUBLISHING_GROUP_ID = groupId;
+  render();
+  fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/groups/${groupId}/publish`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      PUBLISHING_GROUP_ID = null;
+      if (!res.ok) {
+        const messages = {
+          channel_missing: t('toast.publish_channel_missing'),
+          bot_offline: t('toast.publish_bot_offline'),
+          not_found: t('toast.publish_not_found'),
+          invalid_channel: t('toast.publish_invalid_channel'),
+          publish_failed: t('toast.publish_failed'),
+        };
+        toast(data.message || messages[data.error] || t('toast.publish_failed'), 'danger');
+        render();
+        return;
+      }
+      const g = GROUPS.find(x => x.id === groupId);
+      if (g) { g.discordChannelId = data.channelId; g.discordMessageId = data.messageId; }
+      toast(t('toast.publish_success'));
+      render();
+    })
+    .catch(() => {
+      PUBLISHING_GROUP_ID = null;
+      toast(t('toast.publish_failed'), 'danger');
+      render();
+    });
 }
 
 /* =========================================================
@@ -1078,6 +1154,7 @@ function renderSidebar(){
     { id: 'players', label: t('nav.players'), icon: '☰' },
     { id: 'pve', label: t('nav.pve'), icon: '⚔' },
     { id: 'pvp', label: t('nav.pvp'), icon: '⚡' },
+    { id: 'events', label: t('nav.events'), icon: '📅' },
   ];
   const visible = items.filter(i => !i.adminOnly || isAdmin());
   return `
@@ -1116,6 +1193,7 @@ function renderTopbar(){
     classes: [t('topbar.classes.title'), t('topbar.classes.sub')],
     pve: [t('topbar.pve.title'), t('topbar.pve.sub')],
     pvp: [t('topbar.pvp.title'), t('topbar.pvp.sub')],
+    events: [t('topbar.events.title'), t('topbar.events.sub')],
   };
   const [title, sub] = titles[ACTIVE_TAB] || ['', ''];
   return `
@@ -1136,6 +1214,7 @@ function renderTabContent(){
     case 'classes': return isAdmin() ? renderClasses() : renderPlayers();
     case 'pve': return renderGroupsTab('pve');
     case 'pvp': return renderGroupsTab('pvp');
+    case 'events': return renderGroupsTab('event');
     default: return '';
   }
 }
@@ -1296,9 +1375,11 @@ function renderClasses(){
 
 function renderGroupsTab(type){
   const groups = GROUPS.filter(g => g.type === type);
+  const createKey = type==='pve' ? 'groups.create_pve' : (type==='pvp' ? 'groups.create_pvp' : 'groups.create_event');
+  const emptyKey = type==='pve' ? 'groups.empty_pve' : (type==='pvp' ? 'groups.empty_pvp' : 'groups.empty_event');
   return `
-    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="new-group" data-type="${type}">${t(type==='pve' ? 'groups.create_pve' : 'groups.create_pvp')}</button></div>` : ''}
-    ${groups.length === 0 ? emptyState(t(type==='pve' ? 'groups.empty_pve' : 'groups.empty_pvp')) : groups.map(g => renderGroupCard(g)).join('')}
+    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="new-group" data-type="${type}">${t(createKey)}</button></div>` : ''}
+    ${groups.length === 0 ? emptyState(t(emptyKey)) : groups.map(g => renderGroupCard(g)).join('')}
   `;
 }
 
@@ -1309,6 +1390,8 @@ function renderGroupCard(g){
     const p = player(s.playerId);
     if (p.status === 'Nouveau joueur') newCount++;
   });
+  const isPublishing = PUBLISHING_GROUP_ID === g.id;
+  const isEvent = g.type === 'event';
 
   return `
     <div class="gm-panel gm-group-card" data-group="${g.id}">
@@ -1317,6 +1400,12 @@ function renderGroupCard(g){
           ${isAdmin() ? `<input class="gm-group-name" value="${esc(g.name)}" data-action="group-field" data-field="name" data-group="${g.id}">`
             : `<div class="gm-group-name">${esc(g.name)}</div>`}
         </div>
+        ${isEvent ? (isAdmin() ? `
+        <div class="gm-group-meta-inputs">
+          <input type="text" placeholder="${esc(t('groups.activity_placeholder'))}" value="${esc(g.activity||'')}" data-action="group-field" data-field="activity" data-group="${g.id}" style="min-width:180px;">
+          <input type="date" value="${esc(g.date||'')}" data-action="group-field" data-field="date" data-group="${g.id}">
+          <input type="time" value="${esc(g.time||'')}" data-action="group-field" data-field="time" data-group="${g.id}">
+        </div>` : `<div class="gm-note">${esc(g.activity||'')} ${g.date?('· '+g.date):''} ${g.time?('· '+g.time):''}</div>`) : ''}
       </div>
 
       <div class="gm-slots">
@@ -1326,8 +1415,10 @@ function renderGroupCard(g){
       <div class="gm-balance-row">
         <div class="gm-balance-item"><span class="gm-balance-count">${filledSlots.length}</span> ${t('groups.of_five_players')}</div>
         <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> ${t('groups.new_count')}</div>
+        ${isEvent && g.discordMessageId ? `<span class="gm-alert-chip" style="background:rgba(53,210,154,0.13);border-color:rgba(53,210,154,0.4);color:var(--success);">${t('groups.published')}</span>` : ''}
         ${isAdmin() ? `
         <div class="gm-group-actions">
+          ${isEvent ? `<button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="publish-group" data-group="${g.id}" ${isPublishing?'disabled':''}>${isPublishing ? t('groups.publishing') : (g.discordMessageId ? t('groups.republish') : t('groups.publish'))}</button>` : ''}
           <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-group" data-group="${g.id}">${t('groups.delete')}</button>
         </div>` : ''}
       </div>
@@ -1552,7 +1643,7 @@ function bindEvents(){
     }
 
     if (['nav','edit-player','new-class','edit-class','delete-class',
-         'new-group','delete-group','remove-slot',
+         'new-group','delete-group','remove-slot','publish-group',
          'confirm-modal','save-player','save-class','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
          'connect-discord','logout-discord','confirm-onboarding','set-lang'].includes(action)) {
@@ -1580,6 +1671,7 @@ function handleClick(action, el, e){
     case 'delete-class': requestDeleteClass(id); break;
     case 'new-group': createGroup(el.getAttribute('data-type')); break;
     case 'delete-group': deleteGroup(el.getAttribute('data-group')); break;
+    case 'publish-group': publishGroupToDiscord(el.getAttribute('data-group')); break;
     case 'remove-slot': removeSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot'))); break;
     case 'close-modal': MODAL = null; render(); break;
     case 'confirm-modal': if (MODAL && MODAL.onConfirm) MODAL.onConfirm(); break;
