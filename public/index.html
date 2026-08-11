@@ -486,13 +486,17 @@ const I18N = {
     'groups.empty_pvp': 'Aucun groupe PvP pour le moment.',
     'groups.create_event': '+ Créer un event',
     'groups.empty_event': "Aucun event pour le moment.",
+    'eventkind.title': "Type d'event",
+    'eventkind.subtitle': "Choisissez le type d'activité pour définir le nombre de places.",
+    'eventkind.expedition': 'Expédition / Transcendance',
+    'eventkind.sanctuary': 'Sanctuary',
     'groups.slot_num': 'Emplacement {n}',
     'groups.choose_player': '— Choisir un joueur —',
     'groups.already_in_group': '(déjà dans ce groupe)',
     'groups.remove_title': 'Retirer',
     'groups.no_class_warning': "⚠ Ce joueur n'a pas encore de classe définie",
     'groups.already_in': '⚠ Déjà dans « {name} »',
-    'groups.of_five_players': '/ 5 joueurs',
+    'groups.of_n_players': '/ {n} joueurs',
     'groups.new_count': 'Nouveaux',
     'groups.delete': 'Supprimer',
     'groups.activity_placeholder': 'Activité / donjon (facultatif)',
@@ -629,13 +633,17 @@ const I18N = {
     'groups.empty_pvp': 'No PvP group yet.',
     'groups.create_event': '+ Create an event',
     'groups.empty_event': 'No event yet.',
+    'eventkind.title': 'Event type',
+    'eventkind.subtitle': 'Choose the activity type to set the number of slots.',
+    'eventkind.expedition': 'Expedition / Transcendence',
+    'eventkind.sanctuary': 'Sanctuary',
     'groups.slot_num': 'Slot {n}',
     'groups.choose_player': '— Choose a player —',
     'groups.already_in_group': '(already in this group)',
     'groups.remove_title': 'Remove',
     'groups.no_class_warning': "⚠ This player hasn't set a class yet",
     'groups.already_in': '⚠ Already in « {name} »',
-    'groups.of_five_players': '/ 5 players',
+    'groups.of_n_players': '/ {n} players',
     'groups.new_count': 'New',
     'groups.delete': 'Delete',
     'groups.activity_placeholder': 'Activity / dungeon (optional)',
@@ -1012,14 +1020,24 @@ function requestDeleteClass(classId){
    ACTIONS — GROUPES
 ========================================================= */
 
-function createGroup(type){
+function createGroup(type, kind){
   const count = GROUPS.filter(g => g.type === type).length;
   const defaultName = (type === 'event' ? 'Event ' : 'Groupe ') + (count + 1);
+  const slotCount = (type === 'event' && kind === 'sanctuary') ? 10 : 5;
   const g = { id: uid('g'), type, name: defaultName, activity: '', date: '', time: '',
-    slots: [0,1,2,3,4].map(() => ({ playerId: null })) };
+    eventKind: type === 'event' ? (kind || 'expedition') : undefined,
+    slots: Array.from({ length: slotCount }, () => ({ playerId: null })) };
   GROUPS.push(g);
   toast(t('toast.group_created'));
   render();
+}
+function openEventKindModal(){
+  MODAL = { type: 'eventKind' };
+  render();
+}
+function createEventWithKind(kind){
+  MODAL = null;
+  createGroup('event', kind);
 }
 function deleteGroup(groupId){
   const g = GROUPS.find(x => x.id === groupId);
@@ -1040,7 +1058,6 @@ function removeSlotPlayer(groupId, slotIdx){
 function updateGroupField(groupId, field, value){
   const g = GROUPS.find(x => x.id === groupId);
   g[field] = value;
-  render();
 }
 
 let PUBLISHING_GROUP_ID = null;
@@ -1377,8 +1394,9 @@ function renderGroupsTab(type){
   const groups = GROUPS.filter(g => g.type === type);
   const createKey = type==='pve' ? 'groups.create_pve' : (type==='pvp' ? 'groups.create_pvp' : 'groups.create_event');
   const emptyKey = type==='pve' ? 'groups.empty_pve' : (type==='pvp' ? 'groups.empty_pvp' : 'groups.empty_event');
+  const createAction = type === 'event' ? 'open-event-kind' : 'new-group';
   return `
-    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="new-group" data-type="${type}">${t(createKey)}</button></div>` : ''}
+    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="${createAction}" data-type="${type}">${t(createKey)}</button></div>` : ''}
     ${groups.length === 0 ? emptyState(t(emptyKey)) : groups.map(g => renderGroupCard(g)).join('')}
   `;
 }
@@ -1399,6 +1417,7 @@ function renderGroupCard(g){
         <div class="gm-group-title-row">
           ${isAdmin() ? `<input class="gm-group-name" value="${esc(g.name)}" data-action="group-field" data-field="name" data-group="${g.id}">`
             : `<div class="gm-group-name">${esc(g.name)}</div>`}
+          ${isEvent && g.eventKind ? `<span class="gm-class-pill" style="border-color:var(--border-strong);color:var(--muted);">${g.eventKind === 'sanctuary' ? t('eventkind.sanctuary') : t('eventkind.expedition')}</span>` : ''}
         </div>
         ${isEvent ? (isAdmin() ? `
         <div class="gm-group-meta-inputs">
@@ -1413,7 +1432,7 @@ function renderGroupCard(g){
       </div>
 
       <div class="gm-balance-row">
-        <div class="gm-balance-item"><span class="gm-balance-count">${filledSlots.length}</span> ${t('groups.of_five_players')}</div>
+        <div class="gm-balance-item"><span class="gm-balance-count">${filledSlots.length}</span> ${t('groups.of_n_players', { n: g.slots.length })}</div>
         <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> ${t('groups.new_count')}</div>
         ${isEvent && g.discordMessageId ? `<span class="gm-alert-chip" style="background:rgba(53,210,154,0.13);border-color:rgba(53,210,154,0.4);color:var(--success);">${t('groups.published')}</span>` : ''}
         ${isAdmin() ? `
@@ -1480,7 +1499,28 @@ function renderModal(){
   if (MODAL.type === 'confirm') return renderConfirmModal();
   if (MODAL.type === 'discordConfig') return renderDiscordConfigModal();
   if (MODAL.type === 'onboarding') return renderOnboardingModal();
+  if (MODAL.type === 'eventKind') return renderEventKindModal();
   return '';
+}
+
+function renderEventKindModal(){
+  return `
+    <div class="gm-modal-overlay" data-action="close-modal">
+      <div class="gm-modal" data-stop="1" style="max-width:420px;">
+        <h3>${t('eventkind.title')}</h3>
+        <div class="gm-note" style="margin-bottom:16px;">${t('eventkind.subtitle')}</div>
+        <button class="gm-btn gm-btn-ghost" style="width:100%;justify-content:space-between;padding:14px;margin-bottom:10px;" data-action="pick-event-kind" data-kind="expedition">
+          <span>⚔️ ${t('eventkind.expedition')}</span><span class="gm-note" style="margin:0;">5 ${LANG==='en'?'players':'joueurs'}</span>
+        </button>
+        <button class="gm-btn gm-btn-ghost" style="width:100%;justify-content:space-between;padding:14px;" data-action="pick-event-kind" data-kind="sanctuary">
+          <span>🏛️ ${t('eventkind.sanctuary')}</span><span class="gm-note" style="margin:0;">10 ${LANG==='en'?'players':'joueurs'}</span>
+        </button>
+        <div class="gm-modal-actions">
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">${t('confirm.cancel')}</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderOnboardingModal(){
@@ -1643,7 +1683,7 @@ function bindEvents(){
     }
 
     if (['nav','edit-player','new-class','edit-class','delete-class',
-         'new-group','delete-group','remove-slot','publish-group',
+         'new-group','delete-group','remove-slot','publish-group','open-event-kind','pick-event-kind',
          'confirm-modal','save-player','save-class','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
          'connect-discord','logout-discord','confirm-onboarding','set-lang'].includes(action)) {
@@ -1672,6 +1712,8 @@ function handleClick(action, el, e){
     case 'new-group': createGroup(el.getAttribute('data-type')); break;
     case 'delete-group': deleteGroup(el.getAttribute('data-group')); break;
     case 'publish-group': publishGroupToDiscord(el.getAttribute('data-group')); break;
+    case 'open-event-kind': openEventKindModal(); break;
+    case 'pick-event-kind': createEventWithKind(el.getAttribute('data-kind')); break;
     case 'remove-slot': removeSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot'))); break;
     case 'close-modal': MODAL = null; render(); break;
     case 'confirm-modal': if (MODAL && MODAL.onConfirm) MODAL.onConfirm(); break;
@@ -1693,7 +1735,11 @@ function handleInput(action, el, e){
     case 'filter-search': PLAYER_FILTERS.search = val; renderPreserveFocus(); break;
     case 'filter-class': PLAYER_FILTERS.classId = val; render(); break;
     case 'filter-status': PLAYER_FILTERS.status = val; render(); break;
-    case 'group-field': updateGroupField(el.getAttribute('data-group'), el.getAttribute('data-field'), val); break;
+    case 'group-field': {
+      updateGroupField(el.getAttribute('data-group'), el.getAttribute('data-field'), val);
+      if (document.activeElement === el && el.type === 'text') { renderKeepGroupFieldFocus(el); } else { render(); }
+      break;
+    }
     case 'slot-select': setSlotPlayer(el.getAttribute('data-group'), Number(el.getAttribute('data-slot')), val); break;
     case 'form-input': MODAL.form[el.getAttribute('data-field')] = val; MODAL.error=''; if(document.activeElement===el){renderKeepInputFocus(el);} else render(); break;
     case 'form-checkbox': MODAL.form[el.getAttribute('data-field')] = el.checked; render(); break;
@@ -1716,6 +1762,14 @@ function renderKeepInputFocus(sourceEl){
   const selStart = sourceEl.selectionStart;
   render();
   const el = document.querySelector(`[data-field="${field}"][data-action="form-input"]`);
+  if (el) { el.focus(); if (selStart!=null && el.setSelectionRange) { try{ el.setSelectionRange(selStart, selStart); }catch(e){} } }
+}
+function renderKeepGroupFieldFocus(sourceEl){
+  const group = sourceEl.getAttribute('data-group');
+  const field = sourceEl.getAttribute('data-field');
+  const selStart = sourceEl.selectionStart;
+  render();
+  const el = document.querySelector(`[data-action="group-field"][data-group="${group}"][data-field="${field}"]`);
   if (el) { el.focus(); if (selStart!=null && el.setSelectionRange) { try{ el.setSelectionRange(selStart, selStart); }catch(e){} } }
 }
 
