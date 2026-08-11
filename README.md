@@ -139,29 +139,39 @@ Si `guildWarning` vaut `bot_not_in_guild_or_member_not_found`, le bot n'est
 probablement pas présent sur le serveur configuré (`DISCORD_GUILD_ID`) : le
 profil global Discord est tout de même renvoyé.
 
-## Annonces de groupes dans Discord (boutons Rejoindre / Quitter)
+## Annonces d'events dans Discord (un bouton par emplacement)
 
-Depuis un groupe PvE ou PvP sur le site, le bouton **📣 Publier sur Discord**
-envoie (ou met à jour) un message dans un salon Discord de votre choix, avec
-le nom du groupe, l'activité, la date, et la liste des emplacements. Deux
-boutons apparaissent sous le message :
+Depuis un event sur le site, le bouton **📣 Publier sur Discord** envoie (ou
+met à jour) un message dans un salon Discord de votre choix, avec le nom,
+l'activité, la date, et la liste des emplacements — chacun affiché avec
+l'emoji de la classe du joueur inscrit (⚔️ Gladiateur, 🛡️ Templier, 🗡️
+Assassin, 🏹 Rôdeur, 🔥 Sorcier, 🌪️ Spiritualiste, ✚ Clerc, 🎵 Aède).
 
-- **✅ Rejoindre** — prend automatiquement le premier emplacement libre.
-  Vérifie que la personne a bien le rôle requis, qu'elle a déjà choisi une
-  classe sur le site, et qu'elle n'est pas déjà inscrite. Trois classes ne
-  peuvent apparaître qu'une seule fois par groupe : **Templier, Clerc et
-  Aède** — si l'une d'elles est déjà prise, l'inscription est refusée avec
-  un message explicite (visible seulement par la personne qui clique).
-- **🚪 Quitter** — libère l'emplacement de la personne dans ce groupe.
+Sous le message, **un bouton par emplacement** :
+- **Vert et cliquable** s'il est libre — cliquer dessus inscrit directement
+  la personne à CET emplacement précis.
+- **Gris et désactivé** (affiche juste le pseudo) s'il est déjà pris —
+  impossible de cliquer dessus.
+
+Un dernier bouton rouge **🚪 Quitter** permet de libérer son propre
+emplacement dans ce groupe.
+
+Avant d'inscrire quelqu'un, le bot vérifie : le rôle requis, qu'une classe a
+bien été choisie sur le site, que la personne n'est pas déjà inscrite
+ailleurs dans ce groupe, et que l'emplacement n'a pas été pris entre-temps
+par quelqu'un d'autre. Trois classes ne peuvent apparaître qu'une seule fois
+par groupe : **Templier, Clerc et Aède** — si l'une d'elles est déjà prise,
+l'inscription est refusée avec un message explicite (visible seulement par
+la personne qui clique).
 
 Toute inscription/désinscription via Discord met à jour **le site** en temps
 réel (le fichier de données partagé), et inversement : si vous modifiez le
 groupe sur le site, republiez-le pour rafraîchir le message Discord.
 
-Si la personne qui clique sur "Rejoindre" ne s'est jamais connectée sur le
-site, un profil est créé automatiquement à partir de son compte Discord
-(comme lors d'une connexion classique), mais sans classe — elle devra en
-choisir une sur le site avant de pouvoir rejoindre un groupe.
+Si la personne qui clique ne s'est jamais connectée sur le site, un profil
+est créé automatiquement à partir de son compte Discord (comme lors d'une
+connexion classique), mais sans classe — elle devra en choisir une sur le
+site avant de pouvoir rejoindre un emplacement.
 
 ### Prérequis
 

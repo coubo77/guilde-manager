@@ -385,38 +385,59 @@ function upsertPlayerFromDiscord(state, discordUser, member){
 const discordClient = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const CLASS_NAMES_FR = { c1: 'Gladiateur', c2: 'Templier', c3: 'Assassin', c4: 'Rôdeur', c5: 'Sorcier', c6: 'Spiritualiste', c7: 'Clerc', c8: 'Aède' };
+// Discord n'affiche pas d'images dans le texte : on utilise des emojis pour
+// représenter chaque classe, dans le même esprit que les icônes du site.
+const CLASS_EMOJI = { c1: '⚔️', c2: '🛡️', c3: '🗡️', c4: '🏹', c5: '🔥', c6: '🌪️', c7: '✚', c8: '🎵' };
 
 function classDisplayName(state, classId){
   if (!classId) return '?';
   const c = (state.classes || []).find(x => x.id === classId);
   return (c && c.name) || CLASS_NAMES_FR[classId] || classId;
 }
+function classEmoji(classId){
+  return CLASS_EMOJI[classId] || '❔';
+}
 
 function buildGroupMessage(group, state){
   const lines = group.slots.map((s, i) => {
-    if (!s.playerId) return `**${i + 1}.** _Emplacement libre_`;
+    if (!s.playerId) return `\`${i + 1}.\` *Emplacement libre*`;
     const p = (state.players || []).find(x => x.id === s.playerId);
-    if (!p) return `**${i + 1}.** _Emplacement libre_`;
-    return `**${i + 1}.** ${p.pseudo} — ${classDisplayName(state, p.classId)}`;
+    if (!p) return `\`${i + 1}.\` *Emplacement libre*`;
+    return `\`${i + 1}.\` ${classEmoji(p.classId)} **${p.pseudo}** — ${classDisplayName(state, p.classId)}`;
   }).join('\n');
 
   const embed = new EmbedBuilder()
     .setColor(0x8b6bff)
-    .setTitle(`${group.name}${group.activity ? ' — ' + group.activity : ''}`)
+    .setTitle(`⚔️ ${group.name}${group.activity ? ' — ' + group.activity : ''}`)
     .setDescription(lines)
-    .setFooter({ text: 'Wingmate — cliquez sur Rejoindre pour vous inscrire' });
+    .setFooter({ text: 'Wingmate — cliquez sur un emplacement vide pour le rejoindre' });
 
   if (group.date || group.time) {
     embed.addFields({ name: '🗓️ Date', value: `${group.date || ''} ${group.time || ''}`.trim() || '—', inline: true });
   }
   embed.addFields({ name: '👥 Places', value: `${group.slots.filter(s => s.playerId).length} / ${group.slots.length}`, inline: true });
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`join:${group.id}`).setLabel('✅ Rejoindre').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`leave:${group.id}`).setLabel('🚪 Quitter').setStyle(ButtonStyle.Secondary),
-  );
+  // Un bouton par emplacement : vert et cliquable s'il est libre, gris et
+  // désactivé (juste informatif) s'il est déjà pris. On regroupe 5 boutons
+  // par ligne (limite Discord), plus une dernière ligne pour "Quitter".
+  const slotButtons = group.slots.map((s, i) => {
+    if (!s.playerId) {
+      return new ButtonBuilder().setCustomId(`slot:${group.id}:${i}`).setLabel(`${i + 1}. Rejoindre`).setStyle(ButtonStyle.Success);
+    }
+    const p = (state.players || []).find(x => x.id === s.playerId);
+    const label = p ? `${i + 1}. ${p.pseudo}`.slice(0, 80) : `${i + 1}. Pris`;
+    return new ButtonBuilder().setCustomId(`slot:${group.id}:${i}`).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(true);
+  });
 
-  return { embeds: [embed], components: [row] };
+  const rows = [];
+  for (let i = 0; i < slotButtons.length; i += 5) {
+    rows.push(new ActionRowBuilder().addComponents(slotButtons.slice(i, i + 5)));
+  }
+  rows.push(new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`leave:${group.id}`).setLabel('🚪 Quitter').setStyle(ButtonStyle.Danger),
+  ));
+
+  return { embeds: [embed], components: rows };
 }
 
 async function updateGroupMessage(group, state){
@@ -432,8 +453,11 @@ async function updateGroupMessage(group, state){
 
 discordClient.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
-  const [action, groupId] = interaction.customId.split(':');
-  if (action !== 'join' && action !== 'leave') return;
+  const parts = interaction.customId.split(':');
+  const action = parts[0];
+  if (action !== 'slot' && action !== 'leave') return;
+  const groupId = action === 'slot' ? parts[1] : parts[1];
+  const slotIndex = action === 'slot' ? Number(parts[2]) : null;
 
   const state = (await readState()) || { players: [], classes: [], groups: [] };
   state.players = state.players || [];
@@ -476,7 +500,7 @@ discordClient.on('interactionCreate', async (interaction) => {
     return interaction.reply({ content: 'Vous avez quitté le groupe.', ephemeral: true });
   }
 
-  // action === 'join'
+  // action === 'slot' : rejoindre CET emplacement précis.
   if (group.slots.some(s => s.playerId === player.id)) {
     await writeState(state);
     return interaction.reply({ content: 'Vous êtes déjà inscrit(e) à ce groupe.', ephemeral: true });
@@ -484,6 +508,15 @@ discordClient.on('interactionCreate', async (interaction) => {
   if (!player.classId) {
     await writeState(state);
     return interaction.reply({ content: "Merci de choisir votre classe sur le site Wingmate avant de rejoindre un groupe.", ephemeral: true });
+  }
+  if (slotIndex == null || slotIndex < 0 || slotIndex >= group.slots.length) {
+    await writeState(state);
+    return interaction.reply({ content: 'Emplacement invalide.', ephemeral: true });
+  }
+  if (group.slots[slotIndex].playerId) {
+    await writeState(state);
+    await updateGroupMessage(group, state); // le message affiché était périmé (pris entre-temps) : on le rafraîchit
+    return interaction.reply({ content: 'Cet emplacement vient d\'être pris par quelqu\'un d\'autre. Réessayez sur un autre emplacement.', ephemeral: true });
   }
   if (RESTRICTED_CLASS_IDS.includes(player.classId)) {
     const conflict = group.slots.some(s => {
@@ -496,12 +529,7 @@ discordClient.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: `Un(e) ${classDisplayName(state, player.classId)} est déjà inscrit(e) dans ce groupe (une seule personne de cette classe autorisée).`, ephemeral: true });
     }
   }
-  const freeIdx = group.slots.findIndex(s => !s.playerId);
-  if (freeIdx === -1) {
-    await writeState(state);
-    return interaction.reply({ content: 'Ce groupe est complet.', ephemeral: true });
-  }
-  group.slots[freeIdx].playerId = player.id;
+  group.slots[slotIndex].playerId = player.id;
   await writeState(state);
   await updateGroupMessage(group, state);
   return interaction.reply({ content: 'Vous avez rejoint le groupe !', ephemeral: true });
