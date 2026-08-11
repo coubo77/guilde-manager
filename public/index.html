@@ -763,10 +763,10 @@ function toast(msg, tone){
 /* ---- Sauvegarde automatique côté backend (fichier data.json local) ---- */
 let SAVE_TIMER = null;
 let LAST_SAVE_STATUS = null; // 'ok' | 'error' | null
-function scheduleSave(){
+function scheduleSave(immediate){
   if (!DISCORD_API_BASE_URL || !SESSION_USER) return;
   clearTimeout(SAVE_TIMER);
-  SAVE_TIMER = setTimeout(() => {
+  const doSave = () => {
     fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`, {
       method: 'PUT',
       credentials: 'same-origin',
@@ -778,7 +778,8 @@ function scheduleSave(){
         LAST_SAVE_STATUS = r.ok ? 'ok' : 'error';
       })
       .catch(() => { LAST_SAVE_STATUS = 'error'; });
-  }, 600);
+  };
+  if (immediate) { doSave(); } else { SAVE_TIMER = setTimeout(doSave, 600); }
 }
 
 function checkSession(){
@@ -837,6 +838,7 @@ function confirmOnboarding(){
   }
   MODAL = null;
   toast(t('toast.onboarding_done'));
+  render(true);
 }
 
 function avatarHtml(p, size){
@@ -906,7 +908,7 @@ function savePlayerForm(){
     toast(t('toast.player_added'));
   }
   MODAL = null;
-  render();
+  render(true);
 }
 
 function uniquePseudo(base){
@@ -1010,12 +1012,12 @@ function saveClassForm(){
     toast(t('toast.class_created'));
   }
   CLASSES.sort((a,b) => a.order - b.order);
-  MODAL = null; render();
+  MODAL = null; render(true);
 }
 function requestDeleteClass(classId){
   MODAL = { type: 'confirm', title: t('confirm.delete_class_title'),
     message: t('confirm.delete_class_msg'),
-    onConfirm: () => { CLASSES = CLASSES.filter(c => c.id !== classId); toast(t('toast.class_deleted'), 'danger'); MODAL = null; render(); }
+    onConfirm: () => { CLASSES = CLASSES.filter(c => c.id !== classId); toast(t('toast.class_deleted'), 'danger'); MODAL = null; render(true); }
   };
   render();
 }
@@ -1033,7 +1035,7 @@ function createGroup(type, kind){
     slots: Array.from({ length: slotCount }, () => ({ playerId: null })) };
   GROUPS.push(g);
   toast(t('toast.group_created'));
-  render();
+  render(true);
 }
 function openEventKindModal(){
   MODAL = { type: 'eventKind' };
@@ -1048,7 +1050,7 @@ function deleteGroup(groupId){
   MODAL = { type: 'confirm', title: t('confirm.delete_group_title'), message: t('confirm.delete_group_msg', { name: g.name }),
     onConfirm: () => {
       MODAL = null; render();
-      const finish = () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast(t('toast.group_deleted'), 'danger'); render(); };
+      const finish = () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast(t('toast.group_deleted'), 'danger'); render(true); };
       if (g.discordMessageId && DISCORD_API_BASE_URL) {
         fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/groups/${groupId}`, { method: 'DELETE', credentials: 'same-origin' })
           .then(finish)
@@ -1063,7 +1065,7 @@ function deleteGroup(groupId){
 function setSlotPlayer(groupId, slotIdx, playerId){
   const g = GROUPS.find(x => x.id === groupId);
   g.slots[slotIdx].playerId = playerId || null;
-  render();
+  render(true);
 }
 function removeSlotPlayer(groupId, slotIdx){
   setSlotPlayer(groupId, slotIdx, null);
@@ -1116,9 +1118,9 @@ function publishGroupToDiscord(groupId){
    RENDER — SHELL
 ========================================================= */
 
-function render(){
+function render(immediate){
   renderUI();
-  if (SESSION_CHECKED && SESSION_USER) scheduleSave();
+  if (SESSION_CHECKED && SESSION_USER) scheduleSave(immediate);
 }
 function renderUI(){
   document.title = LANG === 'en' ? 'Wingmate — Group management' : 'Wingmate — Gestion des groupes';
