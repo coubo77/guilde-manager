@@ -342,11 +342,31 @@ const DEFAULT_CLASSES = [
   { id: 'c3', name: 'Assassin', color: '#ff6b7a', icon: 'classes/assassin.png', order: 3 },
   { id: 'c4', name: 'Rôdeur', color: '#7ed957', icon: 'classes/ranger.png', order: 4 },
   { id: 'c5', name: 'Sorcier', color: '#8b6bff', icon: 'classes/sorcerer.png', order: 5 },
-  { id: 'c6', name: 'Spiritmaster', color: '#45c1ff', icon: 'classes/spiritmaster.png', order: 6 },
+  { id: 'c6', name: 'Spiritualiste', color: '#45c1ff', icon: 'classes/spiritmaster.png', order: 6 },
   { id: 'c7', name: 'Clerc', color: '#f6c552', icon: 'classes/cleric.png', order: 7 },
-  { id: 'c8', name: 'Chanteur', color: '#ff6bd0', icon: 'classes/chanter.png', order: 8 },
+  { id: 'c8', name: 'Aède', color: '#ff6bd0', icon: 'classes/chanter.png', order: 8 },
 ];
 let CLASSES = DEFAULT_CLASSES.slice();
+
+// Traduction des noms des 8 classes par défaut (identifiées par leur id).
+// Une classe personnalisée créée par un joueur (id différent) garde simplement
+// son nom tel quel, dans les deux langues.
+const CLASS_NAME_I18N = {
+  c1: { fr: 'Gladiateur', en: 'Gladiator' },
+  c2: { fr: 'Templier', en: 'Templar' },
+  c3: { fr: 'Assassin', en: 'Assassin' },
+  c4: { fr: 'Rôdeur', en: 'Ranger' },
+  c5: { fr: 'Sorcier', en: 'Sorcerer' },
+  c6: { fr: 'Spiritualiste', en: 'Spiritmaster' },
+  c7: { fr: 'Clerc', en: 'Cleric' },
+  c8: { fr: 'Aède', en: 'Chanter' },
+};
+function className(c){
+  if (!c) return '?';
+  const map = CLASS_NAME_I18N[c.id];
+  if (map) return map[LANG] || map.fr;
+  return c.name;
+}
 
 // Données de démonstration désactivées : la liste des joueurs est vide au premier
 // démarrage. Utilisez la synchronisation Discord (rôle configuré, "Aion 2" par défaut)
@@ -789,7 +809,7 @@ function classIconHtml(icon, size){
 function classPill(classId, overrideName){
   const c = cls(classId);
   if (!c && !overrideName) return `<span class="gm-class-pill" style="border-color:var(--border);color:var(--muted)">—</span>`;
-  const name = overrideName || (c ? c.name : '?');
+  const name = overrideName || (c ? className(c) : '?');
   const color = c ? c.color : '#888';
   return `<span class="gm-class-pill" style="border-color:${color}66;background:${color}1c;color:${color}">
     ${c ? classIconHtml(c.icon, 15) : ''} ${esc(name)}
@@ -1142,7 +1162,7 @@ function renderDashboard(){
       <h3 style="margin:0 0 12px;font-size:14px;">${t('dash.by_class')}</h3>
       ${byClass.map(x => `
         <div class="gm-bar-row">
-          <div class="gm-bar-label">${classIconHtml(x.c.icon, 16)} ${esc(x.c.name)}</div>
+          <div class="gm-bar-label">${classIconHtml(x.c.icon, 16)} ${esc(className(x.c))}</div>
           <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxClass*100)}%;background:${x.c.color}"></div></div>
           <div class="gm-bar-value">${x.count}</div>
         </div>`).join('') || `<div class="gm-note">${t('dash.no_class_configured')}</div>`}
@@ -1187,7 +1207,7 @@ function renderPlayers(){
     <div class="gm-filters">
       <select class="gm-select" data-action="filter-class">
         <option value="">${t('players.all_classes')}</option>
-        ${CLASSES.map(c => `<option value="${c.id}" ${PLAYER_FILTERS.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+        ${CLASSES.map(c => `<option value="${c.id}" ${PLAYER_FILTERS.classId===c.id?'selected':''}>${esc(className(c))}</option>`).join('')}
       </select>
       <select class="gm-select" data-action="filter-status">
         <option value="">${t('players.all_statuses')}</option>
@@ -1254,7 +1274,7 @@ function renderClasses(){
           ${sorted.map(c => `
             <tr>
               <td class="gm-mono">${c.order}</td>
-              <td>${classIconHtml(c.icon, 20)} ${esc(c.name)}</td>
+              <td>${classIconHtml(c.icon, 20)} ${esc(className(c))}</td>
               <td><span class="gm-color-swatch" style="background:${c.color}"></span> <span class="gm-mono" style="color:var(--muted)">${c.color}</span></td>
               <td style="text-align:right;white-space:nowrap;">
                 <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-class" data-id="${c.id}">${t('classes.edit')}</button>
@@ -1381,7 +1401,7 @@ function renderOnboardingModal(){
           <label>${t('onboarding.class_label')}</label>
           <select data-field="classId" data-action="form-input">
             <option value="" ${!f.classId?'selected':''}>${t('onboarding.choose_class')}</option>
-            ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+            ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(className(c))}</option>`).join('')}
           </select>
         </div>
         <div class="gm-form-row">
@@ -1438,14 +1458,14 @@ function renderPlayerModal(){
             <label>${t('playermodal.main_class')}</label>
             <select data-field="classId" data-action="form-input">
               <option value="" ${!f.classId?'selected':''}>${t('onboarding.choose_class')}</option>
-              ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+              ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(className(c))}</option>`).join('')}
             </select>
           </div>
           <div class="gm-form-row">
             <label>${t('playermodal.secondary_class')}</label>
             <select data-field="secondClassId" data-action="form-input">
               <option value="">${t('playermodal.none')}</option>
-              ${CLASSES.map(c => `<option value="${c.id}" ${f.secondClassId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+              ${CLASSES.map(c => `<option value="${c.id}" ${f.secondClassId===c.id?'selected':''}>${esc(className(c))}</option>`).join('')}
             </select>
           </div>
         </div>
