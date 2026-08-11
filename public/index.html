@@ -123,6 +123,7 @@ html, body {
 .gm-user-badge-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gm-user-badge-logout { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 4px; line-height: 1; flex-shrink: 0; }
 .gm-user-badge-logout:hover { color: var(--danger); }
+.gm-footer-credit { text-align: center; font-size: 10px; color: var(--muted-2); margin-top: 10px; letter-spacing: 0.02em; }
 .gm-role-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
 .gm-role-switch { display: flex; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 3px; gap: 3px; }
 .gm-role-switch button {
@@ -753,11 +754,31 @@ function player(id){ return PLAYERS.find(p => p.id === id); }
 // Accès libre : plus de distinction Admin/Joueur, tout le monde a les mêmes droits.
 function isAdmin(){ return true; }
 
+// Les notifications vivent dans leur propre conteneur DOM, en dehors du cycle
+// de rendu principal (#gm-app). Ainsi, une mise à jour reçue en temps réel
+// (ou n'importe quel autre rafraîchissement) ne les recrée jamais dans le DOM
+// et ne rejoue donc jamais leur animation d'apparition par erreur.
+let TOAST_ROOT = null;
+function ensureToastRoot(){
+  if (!TOAST_ROOT) {
+    TOAST_ROOT = document.createElement('div');
+    TOAST_ROOT.id = 'gm-toast-root';
+    TOAST_ROOT.className = 'gm-toast-container';
+    document.body.appendChild(TOAST_ROOT);
+  }
+  return TOAST_ROOT;
+}
+function renderToasts(){
+  const root = ensureToastRoot();
+  root.innerHTML = TOASTS.map(tt => `<div class="gm-toast" style="border-left-color:${tt.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(tt.msg)}</div>`).join('');
+}
+
 function toast(msg, tone, immediate){
   const id = uid('t');
   TOASTS.push({ id, msg, tone: tone || 'success' });
+  renderToasts();
   render(immediate);
-  setTimeout(() => { TOASTS = TOASTS.filter(t => t.id !== id); render(); }, 3000);
+  setTimeout(() => { TOASTS = TOASTS.filter(t => t.id !== id); renderToasts(); }, 3000);
 }
 
 /* ---- Sauvegarde automatique côté backend (fichier data.json local) ---- */
@@ -1051,13 +1072,17 @@ function deleteGroup(groupId){
   const g = GROUPS.find(x => x.id === groupId);
   MODAL = { type: 'confirm', title: t('confirm.delete_group_title'), message: t('confirm.delete_group_msg', { name: g.name }),
     onConfirm: () => {
-      MODAL = null; render();
       const finish = () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast(t('toast.group_deleted'), 'danger', true); };
       if (g.discordMessageId && DISCORD_API_BASE_URL) {
+        // Requête réseau à venir : on ferme la fenêtre tout de suite pour la
+        // réactivité, le toast arrivera séparément une fois la suppression terminée.
+        MODAL = null; render();
         fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/groups/${groupId}`, { method: 'DELETE', credentials: 'same-origin' })
           .then(finish)
           .catch(finish); // même si la requête échoue, on retire quand même le groupe côté site
       } else {
+        // Rien d'asynchrone : on ferme la fenêtre ET on notifie en un seul rendu.
+        MODAL = null;
         finish();
       }
     }
@@ -1162,7 +1187,6 @@ function renderGateScreen(){
         </div>
       </div>
     </div>
-    <div class="gm-toast-container">${TOASTS.map(tt => `<div class="gm-toast" style="border-left-color:${tt.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(tt.msg)}</div>`).join('')}</div>
   `;
 }
 
@@ -1180,7 +1204,6 @@ function renderShell(){
       </div>
     </div>
     ${MODAL ? renderModal() : ''}
-    <div class="gm-toast-container">${TOASTS.map(tt => `<div class="gm-toast" style="border-left-color:${tt.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(tt.msg)}</div>`).join('')}</div>
   `;
 }
 
@@ -1217,6 +1240,7 @@ function renderSidebar(){
           <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};box-shadow:0 0 6px ${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};"></span>
           ${t('sidebar.discord')}
         </button>
+        <div class="gm-footer-credit">Wingmate 1.0 by coubo</div>
       </div>
     </div>
   `;
