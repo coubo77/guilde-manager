@@ -253,7 +253,7 @@ function buildGroupMessage(group, state){
   if (group.date || group.time) {
     embed.addFields({ name: '🗓️ Date', value: `${group.date || ''} ${group.time || ''}`.trim() || '—', inline: true });
   }
-  embed.addFields({ name: '👥 Places', value: `${group.slots.filter(s => s.playerId).length} / 5`, inline: true });
+  embed.addFields({ name: '👥 Places', value: `${group.slots.filter(s => s.playerId).length} / ${group.slots.length}`, inline: true });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`join:${group.id}`).setLabel('✅ Rejoindre').setStyle(ButtonStyle.Success),
@@ -375,13 +375,23 @@ app.post('/api/groups/:id/publish', requireSession, async (req, res) => {
     if (group.discordMessageId) {
       try {
         message = await channel.messages.fetch(group.discordMessageId);
-        await message.edit(payload);
+        await message.edit(payload); // republication : pas de mention, on met juste à jour
       } catch (e) {
-        message = null; // ancien message introuvable : on en republie un nouveau
+        message = null; // ancien message introuvable : on en republie un nouveau (avec ping)
       }
     }
     if (!message) {
-      message = await channel.send(payload);
+      // Première publication (ou message d'origine perdu) : on ping le rôle requis une seule fois.
+      let sendPayload = payload;
+      try {
+        const role = await getRoleByName(REQUIRED_ROLE_NAME);
+        if (role) {
+          sendPayload = { ...payload, content: `<@&${role.id}>`, allowedMentions: { roles: [role.id] } };
+        }
+      } catch (e) {
+        // Si la récupération du rôle échoue, on publie quand même, simplement sans ping.
+      }
+      message = await channel.send(sendPayload);
     }
     group.discordChannelId = targetChannelId;
     group.discordMessageId = message.id;
