@@ -784,10 +784,12 @@ function toast(msg, tone, immediate){
 /* ---- Sauvegarde automatique côté backend (fichier data.json local) ---- */
 let SAVE_TIMER = null;
 let LAST_SAVE_STATUS = null; // 'ok' | 'error' | null
+let LAST_LOCAL_SAVE_AT = 0; // timestamp de la dernière sauvegarde déclenchée localement
 function scheduleSave(immediate){
   if (!DISCORD_API_BASE_URL || !SESSION_USER) return;
   clearTimeout(SAVE_TIMER);
   const doSave = () => {
+    LAST_LOCAL_SAVE_AT = Date.now();
     fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/state`, {
       method: 'PUT',
       credentials: 'same-origin',
@@ -1876,8 +1878,18 @@ const FALLBACK_POLL_INTERVAL_MS = 45000; // filet de sécurité si le flux temps
 
 function applyLiveState(data){
   if (!data || MODAL) return;
+  // Empêche une mise à jour reçue en direct d'écraser un changement qu'on
+  // vient tout juste de sauvegarder localement (évite tout clignotement le
+  // temps que le serveur confirme notre propre sauvegarde).
+  if (Date.now() - LAST_LOCAL_SAVE_AT < 2500) return;
   const active = document.activeElement;
   if (active && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName)) return;
+  // Si rien n'a réellement changé (cas fréquent : vérification périodique qui
+  // ne trouve aucune nouveauté), on ne redessine pas du tout — ça évite de
+  // "réinitialiser" un état visuel comme le survol d'un bouton pour rien.
+  const incoming = JSON.stringify({ players: data.players || [], classes: data.classes || [], groups: data.groups || [] });
+  const current = JSON.stringify({ players: PLAYERS, classes: CLASSES, groups: GROUPS });
+  if (incoming === current) return;
   PLAYERS = data.players || PLAYERS;
   CLASSES = (data.classes && data.classes.length) ? data.classes : CLASSES;
   GROUPS = data.groups || GROUPS;
