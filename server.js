@@ -403,6 +403,30 @@ app.post('/api/groups/:id/publish', requireSession, async (req, res) => {
   }
 });
 
+// Supprime un groupe/event ET son annonce Discord associée (si publiée).
+app.delete('/api/groups/:id', requireSession, async (req, res) => {
+  const state = readState() || { players: [], classes: [], groups: [] };
+  state.groups = state.groups || [];
+  const group = state.groups.find(g => g.id === req.params.id);
+  if (!group) return res.status(404).json({ error: 'not_found', message: 'Groupe introuvable.' });
+
+  if (group.discordChannelId && group.discordMessageId && discordClient.isReady()) {
+    try {
+      const channel = await discordClient.channels.fetch(group.discordChannelId);
+      const message = await channel.messages.fetch(group.discordMessageId);
+      await message.delete();
+    } catch (e) {
+      // Le message est peut-être déjà supprimé manuellement, ou le bot est hors ligne :
+      // on n'empêche pas la suppression du groupe pour autant.
+      console.warn('Impossible de supprimer le message Discord du groupe', group.id, e.message);
+    }
+  }
+
+  state.groups = state.groups.filter(g => g.id !== req.params.id);
+  writeState(state);
+  res.json({ ok: true });
+});
+
 // Étape 1 : on envoie la personne s'authentifier sur Discord.
 app.get('/auth/discord/login', (req, res) => {
   if (!CLIENT_ID) {
