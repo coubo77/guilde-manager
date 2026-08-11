@@ -1042,7 +1042,17 @@ function createEventWithKind(kind){
 function deleteGroup(groupId){
   const g = GROUPS.find(x => x.id === groupId);
   MODAL = { type: 'confirm', title: t('confirm.delete_group_title'), message: t('confirm.delete_group_msg', { name: g.name }),
-    onConfirm: () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast(t('toast.group_deleted'), 'danger'); MODAL = null; render(); }
+    onConfirm: () => {
+      MODAL = null; render();
+      const finish = () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast(t('toast.group_deleted'), 'danger'); render(); };
+      if (g.discordMessageId && DISCORD_API_BASE_URL) {
+        fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/groups/${groupId}`, { method: 'DELETE', credentials: 'same-origin' })
+          .then(finish)
+          .catch(finish); // même si la requête échoue, on retire quand même le groupe côté site
+      } else {
+        finish();
+      }
+    }
   };
   render();
 }
