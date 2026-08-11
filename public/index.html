@@ -246,24 +246,24 @@ html, body {
   background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
   padding: 6px 9px; border-radius: 8px; font-size: 12px; outline: none; font-family:'Inter';
 }
-.gm-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.gm-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 @media (max-width: 900px) { .gm-slots { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .gm-slots { grid-template-columns: 1fr; } }
 
 .gm-slot {
-  border: 1.5px dashed var(--border); border-radius: 12px; padding: 10px; min-height: 128px;
+  border: 1.5px dashed var(--border); border-radius: 12px; padding: 8px; min-height: 88px;
   display: flex; flex-direction: column; justify-content: space-between; position: relative;
   background: rgba(255,255,255,0.015);
 }
 .gm-slot.filled { border-style: solid; border-color: var(--border-strong); background: rgba(139,107,255,0.05); }
-.gm-slot-num { font-size: 10px; color: var(--muted-2); font-family:'JetBrains Mono'; margin-bottom: 6px; }
+.gm-slot-num { font-size: 9.5px; color: var(--muted-2); font-family:'JetBrains Mono'; margin-bottom: 4px; }
 .gm-slot-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
 .gm-slot select {
   width: 100%; background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
-  padding: 7px 8px; border-radius: 8px; font-size: 12px; outline: none; font-family:'Inter';
+  padding: 6px 7px; border-radius: 8px; font-size: 11.5px; outline: none; font-family:'Inter';
 }
 .gm-slot-filled-body { display: flex; align-items: center; gap: 8px; }
-.gm-slot-filled-body img, .gm-slot-filled-body .gm-avatar-fallback { width: 34px; height: 34px; font-size: 12px; }
+.gm-slot-filled-body img, .gm-slot-filled-body .gm-avatar-fallback { width: 28px; height: 28px; font-size: 11px; }
 .gm-slot-remove { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height:1; padding: 2px;}
 .gm-slot-remove:hover { color: var(--danger); }
 .gm-slot-classoverride { margin-top: 6px; }
