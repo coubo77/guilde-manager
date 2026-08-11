@@ -67,10 +67,11 @@ html, body {
 .gm-gate-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0 0 22px; }
 .gm-gate-text strong { color: var(--text); }
 .gm-lang-switch { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
-.gm-lang-switch button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter'; }
+.gm-lang-switch button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter'; display: inline-flex; align-items: center; gap: 6px; }
+.gm-lang-switch button img { width: 16px; height: 12px; object-fit: cover; border-radius: 2px; display: block; }
 .gm-lang-switch button.active { border-color: var(--border-strong); color: var(--text); background: rgba(139,107,255,0.12); }
 .gm-role-box .gm-lang-switch { gap: 6px; }
-.gm-role-box .gm-lang-switch button { flex: 1; padding: 6px 4px; font-size: 11px; }
+.gm-role-box .gm-lang-switch button { flex: 1; padding: 6px 4px; font-size: 11px; justify-content: center; }
 
 /* ---- Sidebar ---- */
 .gm-sidebar {
@@ -1022,8 +1023,8 @@ function renderGateScreen(){
         <p class="gm-gate-text">${t('gate.text')}</p>
         <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;" data-action="connect-discord">${t('gate.connect')}</button>
         <div class="gm-lang-switch">
-          <button class="${LANG==='fr'?'active':''}" data-action="set-lang" data-lang="fr">🇫🇷 Français</button>
-          <button class="${LANG==='en'?'active':''}" data-action="set-lang" data-lang="en">🇬🇧 English</button>
+          <button class="${LANG==='fr'?'active':''}" data-action="set-lang" data-lang="fr"><img src="https://flagcdn.com/w40/fr.png" alt="FR"> Français</button>
+          <button class="${LANG==='en'?'active':''}" data-action="set-lang" data-lang="en"><img src="https://flagcdn.com/w40/gb.png" alt="GB"> English</button>
         </div>
       </div>
     </div>
@@ -1074,8 +1075,8 @@ function renderSidebar(){
           <button class="gm-user-badge-logout" data-action="logout-discord" title="${t('sidebar.logout_title')}">⏻</button>
         </div>` : ''}
         <div class="gm-lang-switch" style="margin-top:8px;">
-          <button class="${LANG==='fr'?'active':''}" data-action="set-lang" data-lang="fr" title="Français">🇫🇷 FR</button>
-          <button class="${LANG==='en'?'active':''}" data-action="set-lang" data-lang="en" title="English">🇬🇧 EN</button>
+          <button class="${LANG==='fr'?'active':''}" data-action="set-lang" data-lang="fr" title="Français"><img src="https://flagcdn.com/w40/fr.png" alt="FR"> FR</button>
+          <button class="${LANG==='en'?'active':''}" data-action="set-lang" data-lang="en" title="English"><img src="https://flagcdn.com/w40/gb.png" alt="GB"> EN</button>
         </div>
         <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;" data-action="open-discord-config">
           <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};box-shadow:0 0 6px ${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};"></span>
