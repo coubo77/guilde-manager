@@ -193,8 +193,10 @@ html, body {
 .gm-class-dot { width: 7px; height: 7px; border-radius: 50%; }
 .gm-badge-new {
   background: rgba(255,184,79,0.14); color: var(--new); border: 1px solid rgba(255,184,79,0.4);
-  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.03em;
+  font-size: 10px; font-weight: 700; padding: 2px 7px 2px 4px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.03em;
+  display: inline-flex; align-items: center; gap: 3px;
 }
+.gm-badge-new img { width: 13px; height: 13px; object-fit: contain; flex-shrink: 0; }
 .gm-role-tag { font-size: 10px; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.05em; }
 .gm-avail-dot { width: 8px; height: 8px; border-radius: 50%; display:inline-block; margin-right: 5px; }
 
@@ -1231,7 +1233,7 @@ function renderPlayerCard(p){
   return `
     <div class="gm-panel gm-player-card">
       ${bgIcon ? `<img class="gm-player-card-icon" src="${esc(bgIcon)}" alt="">` : ''}
-      ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;">${t('badge.new')}</span>` : ''}
+      ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;"><img src="icons/new-player.png" alt="">${t('badge.new')}</span>` : ''}
       <div class="gm-player-top">
         ${avatarHtml(p, 44)}
         <div class="gm-player-names">
@@ -1367,7 +1369,7 @@ function renderSlot(g, s, i){
       <div class="gm-slot-filled-body">
         ${avatarHtml(p, 34)}
         <div style="min-width:0;">
-          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="margin-left:4px;">${t('badge.new')}</span>` : ''}</div>
+          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="margin-left:4px;"><img src="icons/new-player.png" alt="">${t('badge.new')}</span>` : ''}</div>
           <div style="margin-top:3px;">${classPill(p.classId)}</div>
         </div>
       </div>
