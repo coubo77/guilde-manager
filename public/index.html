@@ -66,6 +66,9 @@ html, body {
 .gm-gate-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; margin: 0 0 10px; }
 .gm-gate-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0 0 22px; }
 .gm-gate-text strong { color: var(--text); }
+.gm-lang-switch { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+.gm-lang-switch button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter'; }
+.gm-lang-switch button.active { border-color: var(--border-strong); color: var(--text); background: rgba(139,107,255,0.12); }
 
 /* ---- Sidebar ---- */
 .gm-sidebar {
@@ -277,9 +280,6 @@ html, body {
 .gm-form-error { color: var(--danger); font-size: 11.5px; margin-top: 4px; }
 .gm-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .gm-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.gm-discord-row { display: flex; gap: 8px; align-items: flex-end; }
-.gm-discord-row > div:first-child { flex: 1; }
-.gm-discord-preview { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; background: rgba(139,107,255,0.06); border-radius: 10px; border: 1px solid var(--border); }
 .gm-discord-status { font-size: 11.5px; padding: 6px 10px; border-radius: 8px; margin-top: 8px; }
 .gm-discord-status.ok { background: rgba(53,210,154,0.12); color: var(--success); }
 .gm-discord-status.err { background: rgba(239,77,95,0.12); color: #ff8b96; }
@@ -379,6 +379,297 @@ let SESSION_USER = null;
 let SESSION_CHECKED = false;
 
 /* =========================================================
+   TRADUCTION (FR / EN)
+========================================================= */
+
+function getCookie(name){
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+function setCookie(name, value){
+  document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${365*24*3600}`;
+}
+
+let LANG = getCookie('wingmate_lang') || 'fr';
+
+function setLang(lang){
+  LANG = lang;
+  setCookie('wingmate_lang', lang);
+  render();
+}
+
+const I18N = {
+  fr: {
+    'gate.title': 'Accès réservé à la guilde',
+    'gate.text': 'Connectez-vous avec votre compte Discord. Seuls les membres du serveur possédant le rôle <strong>Aion 2</strong> peuvent accéder à Wingmate.',
+    'gate.connect': '🔗 Se connecter avec Discord',
+    'sidebar.sub': 'Gestion des groupes',
+    'nav.dashboard': 'Tableau de bord',
+    'nav.players': 'Joueurs',
+    'nav.pve': 'PvE',
+    'nav.pvp': 'PvP',
+    'sidebar.logout_title': 'Se déconnecter',
+    'sidebar.discord': 'Discord',
+    'topbar.dashboard.title': 'Tableau de bord',
+    'topbar.dashboard.sub': "Vue d'ensemble de la guilde",
+    'topbar.players.title': 'Joueurs',
+    'topbar.players.sub': 'Gérer les membres et leurs disponibilités',
+    'topbar.classes.title': 'Classes',
+    'topbar.classes.sub': 'Configurer les classes disponibles',
+    'topbar.pve.title': 'PvE',
+    'topbar.pve.sub': 'Composer les groupes pour les activités PvE',
+    'topbar.pvp.title': 'PvP',
+    'topbar.pvp.sub': 'Composer les groupes pour les activités PvP',
+    'players.search_placeholder': 'Rechercher un pseudo…',
+    'dash.total_players': 'Joueurs au total',
+    'dash.new_players': 'Nouveaux joueurs',
+    'dash.groups_created': 'Groupes créés',
+    'dash.unsynced': 'Profils Discord non synchronisés',
+    'dash.by_class': 'Répartition par classe',
+    'dash.no_class_configured': 'Aucune classe configurée.',
+    'dash.all_synced': 'Tous les profils sont synchronisés.',
+    'dash.sync_btn': 'Synchroniser',
+    'dash.id_label': 'ID',
+    'players.all_classes': 'Toutes les classes',
+    'players.all_statuses': 'Tous les statuts',
+    'status.new': 'Nouveau joueur',
+    'status.confirmed': 'Joueur expérimenté',
+    'players.count_one': '{n} joueur',
+    'players.count_other': '{n} joueurs',
+    'players.empty': 'Aucun joueur ne correspond à ces filtres.',
+    'players.not_synced': 'non synchronisé',
+    'players.edit': 'Modifier',
+    'badge.new': 'Nouveau',
+    'classes.note': "Ces classes sont utilisées dans tous les menus déroulants de l'application.",
+    'classes.new': '+ Nouvelle classe',
+    'classes.th_order': 'Ordre',
+    'classes.th_class': 'Classe',
+    'classes.th_color': 'Couleur',
+    'classes.edit': 'Modifier',
+    'classes.delete': 'Supprimer',
+    'groups.create_pve': '+ Créer un groupe PvE',
+    'groups.create_pvp': '+ Créer un groupe PvP',
+    'groups.empty_pve': 'Aucun groupe PvE pour le moment.',
+    'groups.empty_pvp': 'Aucun groupe PvP pour le moment.',
+    'groups.slot_num': 'Emplacement {n}',
+    'groups.choose_player': '— Choisir un joueur —',
+    'groups.already_in_group': '(déjà dans ce groupe)',
+    'groups.remove_title': 'Retirer',
+    'groups.no_class_warning': "⚠ Ce joueur n'a pas encore de classe définie",
+    'groups.already_in': '⚠ Déjà dans « {name} »',
+    'groups.of_five_players': '/ 5 joueurs',
+    'groups.new_count': 'Nouveaux',
+    'groups.delete': 'Supprimer',
+    'onboarding.title': 'Bienvenue dans la guilde !',
+    'onboarding.subtitle': 'Avant de continuer, complétez votre profil.',
+    'onboarding.class_label': 'Votre classe *',
+    'onboarding.choose_class': '— Choisir une classe —',
+    'onboarding.status_label': 'Votre statut',
+    'onboarding.confirm': 'Confirmer',
+    'onboarding.error_no_class': 'Choisissez votre classe pour continuer.',
+    'toast.onboarding_done': 'Profil complété, bienvenue dans la guilde !',
+    'discordcfg.title': 'Backend Discord',
+    'discordcfg.desc': "Renseignez l'URL du petit serveur backend qui détient le token du bot Discord (voir <span class=\"gm-mono\">discord-backend/README.md</span>). Laissez vide pour rester en mode démonstration (données simulées).",
+    'discordcfg.url_label': 'URL du backend',
+    'discordcfg.test': 'Tester la connexion',
+    'discordcfg.save': 'Enregistrer',
+    'discordcfg.enter_url': 'Renseignez une URL avant de tester.',
+    'discordcfg.testing': 'Test de connexion…',
+    'discordcfg.success': 'Connexion réussie. Token du bot {status}.',
+    'discordcfg.token_configured': 'configuré',
+    'discordcfg.token_missing': 'MANQUANT côté serveur',
+    'discordcfg.unexpected': 'Le serveur a répondu mais de façon inattendue.',
+    'discordcfg.unreachable': "Impossible de joindre ce backend. Vérifiez l'URL et qu'il est démarré.",
+    'toast.backend_configured': 'Backend Discord configuré.',
+    'toast.backend_demo_mode': 'Retour au mode démonstration.',
+    'toast.connect_configure_backend': "Configurez d'abord le backend Discord (⚙).",
+    'playermodal.edit_title': 'Modifier le profil',
+    'playermodal.new_title': 'Nouveau joueur',
+    'playermodal.pseudo_label': 'Pseudo en jeu *',
+    'playermodal.main_class': 'Classe principale',
+    'playermodal.secondary_class': 'Classe secondaire (facultatif)',
+    'playermodal.none': 'Aucune',
+    'playermodal.status_label': 'Statut',
+    'playermodal.cancel': 'Annuler',
+    'playermodal.save': 'Enregistrer',
+    'playermodal.error_pseudo_required': 'Le pseudo en jeu est obligatoire.',
+    'playermodal.error_pseudo_taken': 'Ce pseudo en jeu est déjà utilisé par un autre joueur.',
+    'toast.profile_updated': 'Profil mis à jour.',
+    'toast.player_added': 'Joueur ajouté à la guilde.',
+    'classmodal.edit_title': 'Modifier la classe',
+    'classmodal.new_title': 'Nouvelle classe',
+    'classmodal.name_label': 'Nom *',
+    'classmodal.color_label': 'Couleur',
+    'classmodal.icon_label': "Icône (emoji ou chemin d'image, facultatif)",
+    'classmodal.order_label': "Ordre d'affichage",
+    'classmodal.error_name_required': 'Le nom de la classe est obligatoire.',
+    'toast.class_updated': 'Classe mise à jour.',
+    'toast.class_created': 'Classe créée.',
+    'toast.class_deleted': 'Classe supprimée.',
+    'confirm.delete_class_title': 'Supprimer cette classe ?',
+    'confirm.delete_class_msg': "Les joueurs assignés à cette classe conserveront la référence mais elle n'apparaîtra plus dans les listes.",
+    'confirm.delete_group_title': 'Supprimer ce groupe ?',
+    'confirm.delete_group_msg': '« {name} » sera définitivement supprimé.',
+    'confirm.cancel': 'Annuler',
+    'confirm.confirm': 'Confirmer',
+    'toast.group_created': 'Groupe créé.',
+    'toast.group_deleted': 'Groupe supprimé.',
+    'toast.slot_removed': "Joueur retiré de l'emplacement.",
+    'toast.discord_login_success': 'Connecté avec Discord — bienvenue dans la guilde !',
+    'toast.discord_denied_not_member': "Vous n'êtes pas membre de ce serveur Discord.",
+    'toast.discord_denied_missing_role': "Vous n'avez pas le rôle « Aion 2 » requis pour rejoindre.",
+    'toast.discord_denied_cancelled': 'Connexion annulée.',
+    'toast.discord_access_denied': 'Accès refusé.',
+    'toast.discord_error_guild_not_configured': "Le serveur Discord n'est pas configuré côté backend.",
+    'toast.discord_error_server_misconfigured': "La connexion Discord n'est pas configurée côté backend (identifiants OAuth2 manquants).",
+    'toast.discord_error_role_not_found': 'Le rôle « Aion 2 » est introuvable sur le serveur Discord.',
+    'toast.discord_error_token_exchange_failed': 'Échec de la connexion à Discord. Réessayez.',
+    'toast.discord_error_generic': 'Erreur lors de la connexion Discord. Réessayez.',
+  },
+  en: {
+    'gate.title': 'Guild access only',
+    'gate.text': 'Log in with your Discord account. Only server members with the <strong>Aion 2</strong> role can access Wingmate.',
+    'gate.connect': '🔗 Log in with Discord',
+    'sidebar.sub': 'Group management',
+    'nav.dashboard': 'Dashboard',
+    'nav.players': 'Players',
+    'nav.pve': 'PvE',
+    'nav.pvp': 'PvP',
+    'sidebar.logout_title': 'Log out',
+    'sidebar.discord': 'Discord',
+    'topbar.dashboard.title': 'Dashboard',
+    'topbar.dashboard.sub': 'Guild overview',
+    'topbar.players.title': 'Players',
+    'topbar.players.sub': 'Manage members and their availability',
+    'topbar.classes.title': 'Classes',
+    'topbar.classes.sub': 'Configure available classes',
+    'topbar.pve.title': 'PvE',
+    'topbar.pve.sub': 'Build groups for PvE activities',
+    'topbar.pvp.title': 'PvP',
+    'topbar.pvp.sub': 'Build groups for PvP activities',
+    'players.search_placeholder': 'Search a nickname…',
+    'dash.total_players': 'Total players',
+    'dash.new_players': 'New players',
+    'dash.groups_created': 'Groups created',
+    'dash.unsynced': 'Unsynced Discord profiles',
+    'dash.by_class': 'Breakdown by class',
+    'dash.no_class_configured': 'No class configured.',
+    'dash.all_synced': 'All profiles are synced.',
+    'dash.sync_btn': 'Sync',
+    'dash.id_label': 'ID',
+    'players.all_classes': 'All classes',
+    'players.all_statuses': 'All statuses',
+    'status.new': 'New player',
+    'status.confirmed': 'Experienced player',
+    'players.count_one': '{n} player',
+    'players.count_other': '{n} players',
+    'players.empty': 'No player matches these filters.',
+    'players.not_synced': 'not synced',
+    'players.edit': 'Edit',
+    'badge.new': 'New',
+    'classes.note': 'These classes are used in every dropdown menu across the app.',
+    'classes.new': '+ New class',
+    'classes.th_order': 'Order',
+    'classes.th_class': 'Class',
+    'classes.th_color': 'Color',
+    'classes.edit': 'Edit',
+    'classes.delete': 'Delete',
+    'groups.create_pve': '+ Create a PvE group',
+    'groups.create_pvp': '+ Create a PvP group',
+    'groups.empty_pve': 'No PvE group yet.',
+    'groups.empty_pvp': 'No PvP group yet.',
+    'groups.slot_num': 'Slot {n}',
+    'groups.choose_player': '— Choose a player —',
+    'groups.already_in_group': '(already in this group)',
+    'groups.remove_title': 'Remove',
+    'groups.no_class_warning': "⚠ This player hasn't set a class yet",
+    'groups.already_in': '⚠ Already in « {name} »',
+    'groups.of_five_players': '/ 5 players',
+    'groups.new_count': 'New',
+    'groups.delete': 'Delete',
+    'onboarding.title': 'Welcome to the guild!',
+    'onboarding.subtitle': 'Before continuing, complete your profile.',
+    'onboarding.class_label': 'Your class *',
+    'onboarding.choose_class': '— Choose a class —',
+    'onboarding.status_label': 'Your status',
+    'onboarding.confirm': 'Confirm',
+    'onboarding.error_no_class': 'Choose your class to continue.',
+    'toast.onboarding_done': 'Profile complete, welcome to the guild!',
+    'discordcfg.title': 'Discord backend',
+    'discordcfg.desc': "Enter the URL of the small backend server holding the Discord bot token (see <span class=\"gm-mono\">discord-backend/README.md</span>). Leave empty to stay in demo mode (simulated data).",
+    'discordcfg.url_label': 'Backend URL',
+    'discordcfg.test': 'Test connection',
+    'discordcfg.save': 'Save',
+    'discordcfg.enter_url': 'Enter a URL before testing.',
+    'discordcfg.testing': 'Testing connection…',
+    'discordcfg.success': 'Connection successful. Bot token {status}.',
+    'discordcfg.token_configured': 'configured',
+    'discordcfg.token_missing': 'MISSING on the server',
+    'discordcfg.unexpected': 'The server responded unexpectedly.',
+    'discordcfg.unreachable': "Can't reach this backend. Check the URL and that it's running.",
+    'toast.backend_configured': 'Discord backend configured.',
+    'toast.backend_demo_mode': 'Back to demo mode.',
+    'toast.connect_configure_backend': 'Configure the Discord backend first (⚙).',
+    'playermodal.edit_title': 'Edit profile',
+    'playermodal.new_title': 'New player',
+    'playermodal.pseudo_label': 'In-game nickname *',
+    'playermodal.main_class': 'Main class',
+    'playermodal.secondary_class': 'Secondary class (optional)',
+    'playermodal.none': 'None',
+    'playermodal.status_label': 'Status',
+    'playermodal.cancel': 'Cancel',
+    'playermodal.save': 'Save',
+    'playermodal.error_pseudo_required': 'The in-game nickname is required.',
+    'playermodal.error_pseudo_taken': 'This in-game nickname is already used by another player.',
+    'toast.profile_updated': 'Profile updated.',
+    'toast.player_added': 'Player added to the guild.',
+    'classmodal.edit_title': 'Edit class',
+    'classmodal.new_title': 'New class',
+    'classmodal.name_label': 'Name *',
+    'classmodal.color_label': 'Color',
+    'classmodal.icon_label': 'Icon (emoji or image path, optional)',
+    'classmodal.order_label': 'Display order',
+    'classmodal.error_name_required': 'The class name is required.',
+    'toast.class_updated': 'Class updated.',
+    'toast.class_created': 'Class created.',
+    'toast.class_deleted': 'Class deleted.',
+    'confirm.delete_class_title': 'Delete this class?',
+    'confirm.delete_class_msg': "Players assigned to this class will keep the reference, but it will no longer appear in the lists.",
+    'confirm.delete_group_title': 'Delete this group?',
+    'confirm.delete_group_msg': '« {name} » will be permanently deleted.',
+    'confirm.cancel': 'Cancel',
+    'confirm.confirm': 'Confirm',
+    'toast.group_created': 'Group created.',
+    'toast.group_deleted': 'Group deleted.',
+    'toast.slot_removed': 'Player removed from the slot.',
+    'toast.discord_login_success': 'Logged in with Discord — welcome to the guild!',
+    'toast.discord_denied_not_member': 'You are not a member of this Discord server.',
+    'toast.discord_denied_missing_role': "You don't have the required « Aion 2 » role to join.",
+    'toast.discord_denied_cancelled': 'Login cancelled.',
+    'toast.discord_access_denied': 'Access denied.',
+    'toast.discord_error_guild_not_configured': 'The Discord server is not configured on the backend.',
+    'toast.discord_error_server_misconfigured': 'Discord login is not configured on the backend (missing OAuth2 credentials).',
+    'toast.discord_error_role_not_found': 'The « Aion 2 » role could not be found on the Discord server.',
+    'toast.discord_error_token_exchange_failed': 'Discord login failed. Please try again.',
+    'toast.discord_error_generic': 'Error logging in with Discord. Please try again.',
+  },
+};
+
+function t(key, vars){
+  let str = (I18N[LANG] && I18N[LANG][key]) || I18N.fr[key] || key;
+  if (vars) {
+    Object.keys(vars).forEach(k => { str = str.split(`{${k}}`).join(vars[k]); });
+  }
+  return str;
+}
+function tStatus(status){
+  return status === 'Nouveau joueur' ? t('status.new') : t('status.confirmed');
+}
+function tCount(n, key){
+  return t(n > 1 ? key + '_other' : key + '_one', { n });
+}
+
+/* =========================================================
    UTILITAIRES
 ========================================================= */
 
@@ -464,14 +755,14 @@ function maybeShowOnboarding(){
 }
 
 function confirmOnboarding(){
-  if (!MODAL.form.classId) { MODAL.error = 'Choisissez votre classe pour continuer.'; render(); return; }
+  if (!MODAL.form.classId) { MODAL.error = t('onboarding.error_no_class'); render(); return; }
   const p = player(MODAL.playerId);
   if (p) {
     p.classId = MODAL.form.classId;
     p.status = MODAL.form.status;
   }
   MODAL = null;
-  toast('Profil complété, bienvenue dans la guilde !');
+  toast(t('toast.onboarding_done'));
 }
 
 function avatarHtml(p, size){
@@ -522,7 +813,6 @@ function openPlayerModal(playerId){
       discordId: '', discordUsername: '', discordAvatar: '', discordSynced: false,
     },
     error: '',
-    discordStatus: null,
   };
   render();
 }
@@ -530,16 +820,16 @@ function openPlayerModal(playerId){
 function savePlayerForm(){
   const f = MODAL.form;
   const pseudo = (f.pseudo || '').trim();
-  if (!pseudo) { MODAL.error = 'Le pseudo en jeu est obligatoire.'; render(); return; }
+  if (!pseudo) { MODAL.error = t('playermodal.error_pseudo_required'); render(); return; }
   const dup = PLAYERS.find(p => p.pseudo.toLowerCase() === pseudo.toLowerCase() && p.id !== MODAL.editingId);
-  if (dup) { MODAL.error = 'Ce pseudo en jeu est déjà utilisé par un autre joueur.'; render(); return; }
+  if (dup) { MODAL.error = t('playermodal.error_pseudo_taken'); render(); return; }
   if (MODAL.editingId) {
     const idx = PLAYERS.findIndex(p => p.id === MODAL.editingId);
     PLAYERS[idx] = { ...PLAYERS[idx], ...f, pseudo };
-    toast('Profil mis à jour.');
+    toast(t('toast.profile_updated'));
   } else {
     PLAYERS.push({ id: uid('p'), ...f, pseudo });
-    toast('Joueur ajouté à la guilde.');
+    toast(t('toast.player_added'));
   }
   MODAL = null;
   render();
@@ -555,7 +845,7 @@ function uniquePseudo(base){
 }
 
 function connectWithDiscord(){
-  if (!DISCORD_API_BASE_URL) { toast('Configurez d\'abord le backend Discord (⚙).', 'danger'); return; }
+  if (!DISCORD_API_BASE_URL) { toast(t('toast.connect_configure_backend'), 'danger'); return; }
   window.location.href = `${DISCORD_API_BASE_URL.replace(/\/$/, '')}/auth/discord/login`;
 }
 
@@ -570,22 +860,22 @@ function handleDiscordLoginRedirect(){
   if (!status) return;
   const reason = params.get('reason');
   if (status === 'success') {
-    toast('Connecté avec Discord — bienvenue dans la guilde !');
+    toast(t('toast.discord_login_success'));
   } else if (status === 'denied') {
     const messages = {
-      not_member: "Vous n'êtes pas membre de ce serveur Discord.",
-      missing_role: `Vous n'avez pas le rôle « Aion 2 » requis pour rejoindre.`,
-      cancelled: 'Connexion annulée.',
+      not_member: t('toast.discord_denied_not_member'),
+      missing_role: t('toast.discord_denied_missing_role'),
+      cancelled: t('toast.discord_denied_cancelled'),
     };
-    toast(messages[reason] || 'Accès refusé.', 'danger');
+    toast(messages[reason] || t('toast.discord_access_denied'), 'danger');
   } else if (status === 'error') {
     const messages = {
-      guild_not_configured: "Le serveur Discord n'est pas configuré côté backend.",
-      server_misconfigured: "La connexion Discord n'est pas configurée côté backend (identifiants OAuth2 manquants).",
-      role_not_found: `Le rôle « Aion 2 » est introuvable sur le serveur Discord.`,
-      token_exchange_failed: 'Échec de la connexion à Discord. Réessayez.',
+      guild_not_configured: t('toast.discord_error_guild_not_configured'),
+      server_misconfigured: t('toast.discord_error_server_misconfigured'),
+      role_not_found: t('toast.discord_error_role_not_found'),
+      token_exchange_failed: t('toast.discord_error_token_exchange_failed'),
     };
-    toast(messages[reason] || 'Erreur lors de la connexion Discord. Réessayez.', 'danger');
+    toast(messages[reason] || t('toast.discord_error_generic'), 'danger');
   }
   // Nettoie l'URL pour ne pas garder les paramètres après le message.
   const url = new URL(window.location.href);
@@ -594,94 +884,31 @@ function handleDiscordLoginRedirect(){
   window.history.replaceState({}, '', url.toString());
 }
 
-function simulateDiscordFetch(){
-  const id = (MODAL.form.discordId || '').trim();
-  if (!/^\d{17,20}$/.test(id)) {
-    MODAL.discordStatus = { tone: 'err', text: 'Identifiant Discord invalide (doit être un nombre de 17 à 20 chiffres).' };
-    render(); return;
-  }
-
-  if (DISCORD_API_BASE_URL) {
-    MODAL.discordStatus = { tone: 'loading', text: 'Connexion au backend Discord…' };
-    render();
-    fetch(`${DISCORD_API_BASE_URL.replace(/\/$/, '')}/api/discord/${id}`)
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          const messages = {
-            invalid_id: 'Identifiant Discord invalide.',
-            not_found: 'Utilisateur introuvable sur Discord.',
-            unauthorized: 'Autorisation insuffisante : le token du bot est invalide.',
-            server_misconfigured: 'Le backend n\'a pas de token de bot configuré.',
-            connection_error: 'Problème de connexion à Discord.',
-          };
-          MODAL.discordStatus = { tone: 'err', text: data.message || messages[data.error] || 'Erreur inconnue lors de la récupération du profil.' };
-          render(); return;
-        }
-        MODAL.form.discordUsername = data.username;
-        MODAL.form.discordAvatar = data.avatarUrl;
-        MODAL.form.discordSynced = true;
-        let statusText = 'Profil Discord récupéré avec succès.';
-        if (data.nickname) statusText += ` Surnom sur le serveur : ${data.nickname}.`;
-        if (data.guildWarning === 'bot_not_in_guild_or_member_not_found') statusText += ' (Le bot semble absent du serveur configuré — profil global utilisé.)';
-        MODAL.discordStatus = { tone: 'ok', text: statusText };
-        render();
-      })
-      .catch(() => {
-        MODAL.discordStatus = { tone: 'err', text: 'Impossible de joindre le backend Discord. Vérifiez qu\'il est démarré et que l\'URL est correcte.' };
-        render();
-      });
-    return;
-  }
-
-  // Aucun backend configuré : mode démonstration (données simulées, aucun appel réseau réel).
-  MODAL.discordStatus = { tone: 'loading', text: 'Mode démonstration — simulation de la connexion au bot Discord…' };
-  render();
-  setTimeout(() => {
-    const found = PLAYERS.find(p => p.discordId === id);
-    if (found) {
-      MODAL.form.discordUsername = found.discordUsername;
-      MODAL.form.discordAvatar = found.discordAvatar;
-      MODAL.form.discordSynced = true;
-      MODAL.discordStatus = { tone: 'ok', text: 'Profil Discord récupéré (données de démonstration — configurez un backend pour des données réelles).' };
-    } else if (id.endsWith('0')) {
-      MODAL.discordStatus = { tone: 'err', text: 'Utilisateur introuvable sur le serveur Discord (démonstration).' };
-    } else {
-      const seed = 'u' + id.slice(-4);
-      MODAL.form.discordUsername = 'joueur_' + id.slice(-4);
-      MODAL.form.discordAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
-      MODAL.form.discordSynced = true;
-      MODAL.discordStatus = { tone: 'ok', text: 'Profil Discord récupéré (données de démonstration — configurez un backend pour des données réelles).' };
-    }
-    render();
-  }, 700);
-}
-
 function openDiscordConfigModal(){
   MODAL = { type: 'discordConfig', form: { url: DISCORD_API_BASE_URL }, status: null };
   render();
 }
 function saveDiscordConfig(){
   DISCORD_API_BASE_URL = (MODAL.form.url || '').trim();
-  toast(DISCORD_API_BASE_URL ? 'Backend Discord configuré.' : 'Retour au mode démonstration.');
+  toast(DISCORD_API_BASE_URL ? t('toast.backend_configured') : t('toast.backend_demo_mode'));
   MODAL = null; render();
 }
 function testDiscordConfig(){
   const url = (MODAL.form.url || '').trim();
-  if (!url) { MODAL.status = { tone: 'err', text: 'Renseignez une URL avant de tester.' }; render(); return; }
-  MODAL.status = { tone: 'loading', text: 'Test de connexion…' };
+  if (!url) { MODAL.status = { tone: 'err', text: t('discordcfg.enter_url') }; render(); return; }
+  MODAL.status = { tone: 'loading', text: t('discordcfg.testing') };
   render();
   fetch(`${url.replace(/\/$/, '')}/api/health`)
     .then(async (res) => {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        MODAL.status = { tone: 'ok', text: `Connexion réussie. Token du bot ${data.botTokenConfigured ? 'configuré' : 'MANQUANT côté serveur'}.` };
+        MODAL.status = { tone: 'ok', text: t('discordcfg.success', { status: data.botTokenConfigured ? t('discordcfg.token_configured') : t('discordcfg.token_missing') }) };
       } else {
-        MODAL.status = { tone: 'err', text: 'Le serveur a répondu mais de façon inattendue.' };
+        MODAL.status = { tone: 'err', text: t('discordcfg.unexpected') };
       }
       render();
     })
-    .catch(() => { MODAL.status = { tone: 'err', text: 'Impossible de joindre ce backend. Vérifiez l\'URL et qu\'il est démarré.' }; render(); });
+    .catch(() => { MODAL.status = { tone: 'err', text: t('discordcfg.unreachable') }; render(); });
 }
 
 /* =========================================================
@@ -699,22 +926,22 @@ function openClassModal(classId){
 }
 function saveClassForm(){
   const f = MODAL.form;
-  if (!f.name || !f.name.trim()) { MODAL.error = 'Le nom de la classe est obligatoire.'; render(); return; }
+  if (!f.name || !f.name.trim()) { MODAL.error = t('classmodal.error_name_required'); render(); return; }
   if (MODAL.editingId) {
     const idx = CLASSES.findIndex(c => c.id === MODAL.editingId);
     CLASSES[idx] = { ...CLASSES[idx], ...f, order: Number(f.order) || CLASSES[idx].order };
-    toast('Classe mise à jour.');
+    toast(t('toast.class_updated'));
   } else {
     CLASSES.push({ id: uid('c'), ...f, order: Number(f.order) || CLASSES.length + 1 });
-    toast('Classe créée.');
+    toast(t('toast.class_created'));
   }
   CLASSES.sort((a,b) => a.order - b.order);
   MODAL = null; render();
 }
 function requestDeleteClass(classId){
-  MODAL = { type: 'confirm', title: 'Supprimer cette classe ?',
-    message: "Les joueurs assignés à cette classe conserveront la référence mais elle n'apparaîtra plus dans les listes.",
-    onConfirm: () => { CLASSES = CLASSES.filter(c => c.id !== classId); toast('Classe supprimée.', 'danger'); MODAL = null; render(); }
+  MODAL = { type: 'confirm', title: t('confirm.delete_class_title'),
+    message: t('confirm.delete_class_msg'),
+    onConfirm: () => { CLASSES = CLASSES.filter(c => c.id !== classId); toast(t('toast.class_deleted'), 'danger'); MODAL = null; render(); }
   };
   render();
 }
@@ -728,13 +955,13 @@ function createGroup(type){
   const g = { id: uid('g'), type, name: 'Groupe ' + (count + 1),
     slots: [0,1,2,3,4].map(() => ({ playerId: null })) };
   GROUPS.push(g);
-  toast('Groupe créé.');
+  toast(t('toast.group_created'));
   render();
 }
 function deleteGroup(groupId){
   const g = GROUPS.find(x => x.id === groupId);
-  MODAL = { type: 'confirm', title: 'Supprimer ce groupe ?', message: `« ${g.name} » sera définitivement supprimé.`,
-    onConfirm: () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast('Groupe supprimé.', 'danger'); MODAL = null; render(); }
+  MODAL = { type: 'confirm', title: t('confirm.delete_group_title'), message: t('confirm.delete_group_msg', { name: g.name }),
+    onConfirm: () => { GROUPS = GROUPS.filter(x => x.id !== groupId); toast(t('toast.group_deleted'), 'danger'); MODAL = null; render(); }
   };
   render();
 }
@@ -745,7 +972,7 @@ function setSlotPlayer(groupId, slotIdx, playerId){
 }
 function removeSlotPlayer(groupId, slotIdx){
   setSlotPlayer(groupId, slotIdx, null);
-  toast("Joueur retiré de l'emplacement.");
+  toast(t('toast.slot_removed'));
 }
 function updateGroupField(groupId, field, value){
   const g = GROUPS.find(x => x.id === groupId);
@@ -758,6 +985,7 @@ function updateGroupField(groupId, field, value){
 ========================================================= */
 
 function render(){
+  document.title = LANG === 'en' ? 'Wingmate — Group management' : 'Wingmate — Gestion des groupes';
   const root = document.getElementById('gm-app');
   if (!SESSION_CHECKED) {
     root.innerHTML = renderLoadingScreen();
@@ -788,12 +1016,16 @@ function renderGateScreen(){
     <div class="gm-gate">
       <div class="gm-gate-panel">
         <img class="gm-gate-logo" src="wingmate-logo.png" alt="Wingmate">
-        <h1 class="gm-gate-title">Accès réservé à la guilde</h1>
-        <p class="gm-gate-text">Connectez-vous avec votre compte Discord. Seuls les membres du serveur possédant le rôle <strong>Aion 2</strong> peuvent accéder à Wingmate.</p>
-        <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;" data-action="connect-discord">🔗 Se connecter avec Discord</button>
+        <h1 class="gm-gate-title">${t('gate.title')}</h1>
+        <p class="gm-gate-text">${t('gate.text')}</p>
+        <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;" data-action="connect-discord">${t('gate.connect')}</button>
+        <div class="gm-lang-switch">
+          <button class="${LANG==='fr'?'active':''}" data-action="set-lang" data-lang="fr">Français</button>
+          <button class="${LANG==='en'?'active':''}" data-action="set-lang" data-lang="en">English</button>
+        </div>
       </div>
     </div>
-    <div class="gm-toast-container">${TOASTS.map(t => `<div class="gm-toast" style="border-left-color:${t.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(t.msg)}</div>`).join('')}</div>
+    <div class="gm-toast-container">${TOASTS.map(tt => `<div class="gm-toast" style="border-left-color:${tt.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(tt.msg)}</div>`).join('')}</div>
   `;
 }
 
@@ -811,23 +1043,23 @@ function renderShell(){
       </div>
     </div>
     ${MODAL ? renderModal() : ''}
-    <div class="gm-toast-container">${TOASTS.map(t => `<div class="gm-toast" style="border-left-color:${t.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(t.msg)}</div>`).join('')}</div>
+    <div class="gm-toast-container">${TOASTS.map(tt => `<div class="gm-toast" style="border-left-color:${tt.tone==='danger'?'var(--danger)':'var(--success)'}">${esc(tt.msg)}</div>`).join('')}</div>
   `;
 }
 
 function renderSidebar(){
   const items = [
-    { id: 'dashboard', label: 'Tableau de bord', icon: '◈', adminOnly: true },
-    { id: 'players', label: 'Joueurs', icon: '☰' },
-    { id: 'pve', label: 'PvE', icon: '⚔' },
-    { id: 'pvp', label: 'PvP', icon: '⚡' },
+    { id: 'dashboard', label: t('nav.dashboard'), icon: '◈', adminOnly: true },
+    { id: 'players', label: t('nav.players'), icon: '☰' },
+    { id: 'pve', label: t('nav.pve'), icon: '⚔' },
+    { id: 'pvp', label: t('nav.pvp'), icon: '⚡' },
   ];
   const visible = items.filter(i => !i.adminOnly || isAdmin());
   return `
     <div class="gm-sidebar ${MOBILE_NAV_OPEN ? 'open' : ''}">
       <div class="gm-brand">
         <img class="gm-brand-logo" src="wingmate-logo.png" alt="Wingmate">
-        <div class="gm-brand-sub">Gestion des groupes</div>
+        <div class="gm-brand-sub">${t('sidebar.sub')}</div>
       </div>
       <div class="gm-nav">
         ${visible.map(i => `<div class="gm-nav-item ${ACTIVE_TAB===i.id?'active':''}" data-action="nav" data-tab="${i.id}"><span class="gm-nav-icon">${i.icon}</span>${esc(i.label)}</div>`).join('')}
@@ -837,11 +1069,15 @@ function renderSidebar(){
         <div class="gm-user-badge">
           ${SESSION_USER.avatarUrl ? `<img src="${esc(SESSION_USER.avatarUrl)}" alt="">` : ''}
           <div class="gm-user-badge-name">${esc(SESSION_USER.pseudo)}</div>
-          <button class="gm-user-badge-logout" data-action="logout-discord" title="Se déconnecter">⏻</button>
+          <button class="gm-user-badge-logout" data-action="logout-discord" title="${t('sidebar.logout_title')}">⏻</button>
         </div>` : ''}
+        <div class="gm-lang-switch" style="margin-top:8px;">
+          <button class="${LANG==='fr'?'active':''}" data-action="set-lang" data-lang="fr">FR</button>
+          <button class="${LANG==='en'?'active':''}" data-action="set-lang" data-lang="en">EN</button>
+        </div>
         <button class="gm-btn gm-btn-ghost gm-btn-sm" style="width:100%;display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;" data-action="open-discord-config">
           <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};box-shadow:0 0 6px ${(DISCORD_API_BASE_URL && LAST_SAVE_STATUS !== 'error') ? 'var(--success)' : 'var(--danger)'};"></span>
-          Discord
+          ${t('sidebar.discord')}
         </button>
       </div>
     </div>
@@ -850,11 +1086,11 @@ function renderSidebar(){
 
 function renderTopbar(){
   const titles = {
-    dashboard: ['Tableau de bord', "Vue d'ensemble de la guilde"],
-    players: ['Joueurs', 'Gérer les membres et leurs disponibilités'],
-    classes: ['Classes', 'Configurer les classes disponibles'],
-    pve: ['PvE', 'Composer les groupes pour les activités PvE'],
-    pvp: ['PvP', 'Composer les groupes pour les activités PvP'],
+    dashboard: [t('topbar.dashboard.title'), t('topbar.dashboard.sub')],
+    players: [t('topbar.players.title'), t('topbar.players.sub')],
+    classes: [t('topbar.classes.title'), t('topbar.classes.sub')],
+    pve: [t('topbar.pve.title'), t('topbar.pve.sub')],
+    pvp: [t('topbar.pvp.title'), t('topbar.pvp.sub')],
   };
   const [title, sub] = titles[ACTIVE_TAB] || ['', ''];
   return `
@@ -862,7 +1098,7 @@ function renderTopbar(){
       <div><div class="gm-page-title gm-font-display">${esc(title)}</div><div class="gm-page-sub">${esc(sub)}</div></div>
       ${ACTIVE_TAB==='players' ? `
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <div class="gm-search"><input type="text" placeholder="Rechercher un pseudo…" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
+          <div class="gm-search"><input type="text" placeholder="${esc(t('players.search_placeholder'))}" value="${esc(PLAYER_FILTERS.search)}" data-action="filter-search"></div>
         </div>` : ''}
     </div>
   `;
@@ -894,31 +1130,31 @@ function renderDashboard(){
 
   return `
     <div class="gm-stat-grid">
-      ${statCard(total, 'Joueurs au total')}
-      ${statCard(nouveaux, 'Nouveaux joueurs')}
-      ${statCard(groupsCount, 'Groupes créés')}
-      ${statCard(unsynced, 'Profils Discord non synchronisés')}
+      ${statCard(total, t('dash.total_players'))}
+      ${statCard(nouveaux, t('dash.new_players'))}
+      ${statCard(groupsCount, t('dash.groups_created'))}
+      ${statCard(unsynced, t('dash.unsynced'))}
     </div>
     <div class="gm-panel">
-      <h3 style="margin:0 0 12px;font-size:14px;">Répartition par classe</h3>
+      <h3 style="margin:0 0 12px;font-size:14px;">${t('dash.by_class')}</h3>
       ${byClass.map(x => `
         <div class="gm-bar-row">
           <div class="gm-bar-label">${classIconHtml(x.c.icon, 16)} ${esc(x.c.name)}</div>
           <div class="gm-bar-track"><div class="gm-bar-fill" style="width:${(x.count/maxClass*100)}%;background:${x.c.color}"></div></div>
           <div class="gm-bar-value">${x.count}</div>
-        </div>`).join('') || '<div class="gm-note">Aucune classe configurée.</div>'}
+        </div>`).join('') || `<div class="gm-note">${t('dash.no_class_configured')}</div>`}
     </div>
     <div class="gm-panel" style="margin-top:16px;">
-      <h3 style="margin:0 0 12px;font-size:14px;">Profils Discord non synchronisés</h3>
-      ${unsynced === 0 ? '<div class="gm-note">Tous les profils sont synchronisés.</div>' : `
+      <h3 style="margin:0 0 12px;font-size:14px;">${t('dash.unsynced')}</h3>
+      ${unsynced === 0 ? `<div class="gm-note">${t('dash.all_synced')}</div>` : `
         <div class="gm-players-grid">
           ${PLAYERS.filter(p=>!p.discordSynced).map(p => `
             <div class="gm-player-card gm-panel" style="padding:12px;">
               <div class="gm-player-top">
                 ${avatarHtml(p, 38)}
-                <div class="gm-player-names"><div class="gm-player-pseudo">${esc(p.pseudo)}</div><div class="gm-player-discord">ID: ${esc(p.discordId||'—')}</div></div>
+                <div class="gm-player-names"><div class="gm-player-pseudo">${esc(p.pseudo)}</div><div class="gm-player-discord">${t('dash.id_label')}: ${esc(p.discordId||'—')}</div></div>
               </div>
-              <button class="gm-btn gm-btn-sm gm-btn-ghost" style="margin-top:10px;width:100%" data-action="edit-player" data-id="${p.id}">Synchroniser</button>
+              <button class="gm-btn gm-btn-sm gm-btn-ghost" style="margin-top:10px;width:100%" data-action="edit-player" data-id="${p.id}">${t('dash.sync_btn')}</button>
             </div>`).join('')}
         </div>`}
     </div>
@@ -947,17 +1183,17 @@ function renderPlayers(){
   return `
     <div class="gm-filters">
       <select class="gm-select" data-action="filter-class">
-        <option value="">Toutes les classes</option>
+        <option value="">${t('players.all_classes')}</option>
         ${CLASSES.map(c => `<option value="${c.id}" ${PLAYER_FILTERS.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
       </select>
       <select class="gm-select" data-action="filter-status">
-        <option value="">Tous les statuts</option>
-        <option value="Nouveau joueur" ${PLAYER_FILTERS.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
-        <option value="Joueur expérimenté" ${PLAYER_FILTERS.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
+        <option value="">${t('players.all_statuses')}</option>
+        <option value="Nouveau joueur" ${PLAYER_FILTERS.status==='Nouveau joueur'?'selected':''}>${t('status.new')}</option>
+        <option value="Joueur expérimenté" ${PLAYER_FILTERS.status==='Joueur expérimenté'?'selected':''}>${t('status.confirmed')}</option>
       </select>
-      <div class="gm-note" style="margin-left:auto">${list.length} joueur${list.length>1?'s':''}</div>
+      <div class="gm-note" style="margin-left:auto">${tCount(list.length, 'players.count')}</div>
     </div>
-    ${list.length === 0 ? emptyState('Aucun joueur ne correspond à ces filtres.') : `
+    ${list.length === 0 ? emptyState(t('players.empty')) : `
     <div class="gm-players-grid">
       ${list.map(p => renderPlayerCard(p)).join('')}
     </div>`}
@@ -972,12 +1208,12 @@ function renderPlayerCard(p){
   return `
     <div class="gm-panel gm-player-card">
       ${bgIcon ? `<img class="gm-player-card-icon" src="${esc(bgIcon)}" alt="">` : ''}
-      ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;">Nouveau</span>` : ''}
+      ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="position:absolute;top:12px;right:12px;">${t('badge.new')}</span>` : ''}
       <div class="gm-player-top">
         ${avatarHtml(p, 44)}
         <div class="gm-player-names">
           <div class="gm-player-pseudo">${esc(p.pseudo)}</div>
-          <div class="gm-player-discord">@${esc(p.discordUsername || '—')} ${p.discordSynced ? '' : '· non synchronisé'}</div>
+          <div class="gm-player-discord">@${esc(p.discordUsername || '—')} ${p.discordSynced ? '' : '· ' + t('players.not_synced')}</div>
         </div>
       </div>
       <div class="gm-player-meta">
@@ -986,7 +1222,7 @@ function renderPlayerCard(p){
       </div>
       ${canEdit ? `
       <div class="gm-player-actions">
-        <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-player" data-id="${p.id}">Modifier</button>
+        <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-player" data-id="${p.id}">${t('players.edit')}</button>
       </div>` : ''}
     </div>
   `;
@@ -1005,12 +1241,12 @@ function renderClasses(){
   return `
     <div class="gm-panel">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div class="gm-note" style="margin:0;">Ces classes sont utilisées dans tous les menus déroulants de l'application.</div>
-        <button class="gm-btn gm-btn-primary" data-action="new-class">+ Nouvelle classe</button>
+        <div class="gm-note" style="margin:0;">${t('classes.note')}</div>
+        <button class="gm-btn gm-btn-primary" data-action="new-class">${t('classes.new')}</button>
       </div>
       <div class="gm-scrollx">
       <table class="gm-table">
-        <thead><tr><th>Ordre</th><th>Classe</th><th>Couleur</th><th></th></tr></thead>
+        <thead><tr><th>${t('classes.th_order')}</th><th>${t('classes.th_class')}</th><th>${t('classes.th_color')}</th><th></th></tr></thead>
         <tbody>
           ${sorted.map(c => `
             <tr>
@@ -1018,8 +1254,8 @@ function renderClasses(){
               <td>${classIconHtml(c.icon, 20)} ${esc(c.name)}</td>
               <td><span class="gm-color-swatch" style="background:${c.color}"></span> <span class="gm-mono" style="color:var(--muted)">${c.color}</span></td>
               <td style="text-align:right;white-space:nowrap;">
-                <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-class" data-id="${c.id}">Modifier</button>
-                <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-class" data-id="${c.id}">Supprimer</button>
+                <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="edit-class" data-id="${c.id}">${t('classes.edit')}</button>
+                <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-class" data-id="${c.id}">${t('classes.delete')}</button>
               </td>
             </tr>`).join('')}
         </tbody>
@@ -1036,8 +1272,8 @@ function renderClasses(){
 function renderGroupsTab(type){
   const groups = GROUPS.filter(g => g.type === type);
   return `
-    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="new-group" data-type="${type}">+ Créer un groupe ${type==='pve'?'PvE':'PvP'}</button></div>` : ''}
-    ${groups.length === 0 ? emptyState(`Aucun groupe ${type==='pve'?'PvE':'PvP'} pour le moment.`) : groups.map(g => renderGroupCard(g)).join('')}
+    ${isAdmin() ? `<div style="margin-bottom:16px;"><button class="gm-btn gm-btn-primary" data-action="new-group" data-type="${type}">${t(type==='pve' ? 'groups.create_pve' : 'groups.create_pvp')}</button></div>` : ''}
+    ${groups.length === 0 ? emptyState(t(type==='pve' ? 'groups.empty_pve' : 'groups.empty_pvp')) : groups.map(g => renderGroupCard(g)).join('')}
   `;
 }
 
@@ -1063,11 +1299,11 @@ function renderGroupCard(g){
       </div>
 
       <div class="gm-balance-row">
-        <div class="gm-balance-item"><span class="gm-balance-count">${filledSlots.length}</span> / 5 joueurs</div>
-        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> Nouveaux</div>
+        <div class="gm-balance-item"><span class="gm-balance-count">${filledSlots.length}</span> ${t('groups.of_five_players')}</div>
+        <div class="gm-balance-item"><span class="gm-balance-count" style="color:var(--new)">${newCount}</span> ${t('groups.new_count')}</div>
         ${isAdmin() ? `
         <div class="gm-group-actions">
-          <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-group" data-group="${g.id}">Supprimer</button>
+          <button class="gm-btn gm-btn-sm gm-btn-danger" data-action="delete-group" data-group="${g.id}">${t('groups.delete')}</button>
         </div>` : ''}
       </div>
     </div>
@@ -1082,15 +1318,15 @@ function renderSlot(g, s, i){
   if (!p) {
     const options = PLAYERS.map(pl => {
       const disabled = takenIds.includes(pl.id);
-      return `<option value="${pl.id}" ${disabled?'disabled':''}>${esc(pl.pseudo)}${disabled?' (déjà dans ce groupe)':''}</option>`;
+      return `<option value="${pl.id}" ${disabled?'disabled':''}>${esc(pl.pseudo)}${disabled?' '+t('groups.already_in_group'):''}</option>`;
     }).join('');
     return `
       <div class="gm-slot">
-        <div class="gm-slot-num">Emplacement ${i+1}</div>
+        <div class="gm-slot-num">${t('groups.slot_num', { n: i+1 })}</div>
         <div class="gm-slot-empty" style="flex-direction:column;gap:6px;">
           ${canEdit ? `
           <select data-action="slot-select" data-group="${g.id}" data-slot="${i}">
-            <option value="">— Choisir un joueur —</option>
+            <option value="">${t('groups.choose_player')}</option>
             ${options}
           </select>` : `<span style="color:var(--muted-2);font-size:20px;">＋</span>`}
         </div>
@@ -1103,17 +1339,17 @@ function renderSlot(g, s, i){
 
   return `
     <div class="gm-slot filled">
-      ${canEdit ? `<button class="gm-slot-remove" data-action="remove-slot" data-group="${g.id}" data-slot="${i}" title="Retirer">✕</button>` : ''}
-      <div class="gm-slot-num">Emplacement ${i+1}</div>
+      ${canEdit ? `<button class="gm-slot-remove" data-action="remove-slot" data-group="${g.id}" data-slot="${i}" title="${t('groups.remove_title')}">✕</button>` : ''}
+      <div class="gm-slot-num">${t('groups.slot_num', { n: i+1 })}</div>
       <div class="gm-slot-filled-body">
         ${avatarHtml(p, 34)}
         <div style="min-width:0;">
-          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? '<span class="gm-badge-new" style="margin-left:4px;">Nouveau</span>' : ''}</div>
+          <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.pseudo)} ${p.status==='Nouveau joueur' ? `<span class="gm-badge-new" style="margin-left:4px;">${t('badge.new')}</span>` : ''}</div>
           <div style="margin-top:3px;">${classPill(p.classId)}</div>
         </div>
       </div>
-      ${!p.classId ? `<div class="gm-slot-warning">⚠ Ce joueur n'a pas encore de classe définie</div>` : ''}
-      ${otherGroups.length ? `<div class="gm-slot-warning">⚠ Déjà dans « ${esc(otherGroups[0].name)} »</div>` : ''}
+      ${!p.classId ? `<div class="gm-slot-warning">${t('groups.no_class_warning')}</div>` : ''}
+      ${otherGroups.length ? `<div class="gm-slot-warning">${t('groups.already_in', { name: esc(otherGroups[0].name) })}</div>` : ''}
     </div>
   `;
 }
@@ -1136,25 +1372,25 @@ function renderOnboardingModal(){
   return `
     <div class="gm-modal-overlay">
       <div class="gm-modal" data-stop="1" style="max-width:400px;">
-        <h3>Bienvenue dans la guilde !</h3>
-        <div class="gm-note" style="margin-bottom:16px;">Avant de continuer, complétez votre profil.</div>
+        <h3>${t('onboarding.title')}</h3>
+        <div class="gm-note" style="margin-bottom:16px;">${t('onboarding.subtitle')}</div>
         <div class="gm-form-row">
-          <label>Votre classe *</label>
+          <label>${t('onboarding.class_label')}</label>
           <select data-field="classId" data-action="form-input">
-            <option value="" ${!f.classId?'selected':''}>— Choisir une classe —</option>
+            <option value="" ${!f.classId?'selected':''}>${t('onboarding.choose_class')}</option>
             ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
           </select>
         </div>
         <div class="gm-form-row">
-          <label>Votre statut</label>
+          <label>${t('onboarding.status_label')}</label>
           <select data-field="status" data-action="form-input">
-            <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
-            <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
+            <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>${t('status.new')}</option>
+            <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>${t('status.confirmed')}</option>
           </select>
         </div>
         ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
         <div class="gm-modal-actions">
-          <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;" data-action="confirm-onboarding">Confirmer</button>
+          <button class="gm-btn gm-btn-primary" style="width:100%;justify-content:center;" data-action="confirm-onboarding">${t('onboarding.confirm')}</button>
         </div>
       </div>
     </div>
@@ -1165,20 +1401,18 @@ function renderDiscordConfigModal(){
   return `
     <div class="gm-modal-overlay" data-action="close-modal">
       <div class="gm-modal" data-stop="1">
-        <h3>Backend Discord</h3>
+        <h3>${t('discordcfg.title')}</h3>
         <div class="gm-note" style="margin-bottom:12px;">
-          Renseignez l'URL du petit serveur backend qui détient le token du bot Discord
-          (voir <span class="gm-mono">discord-backend/README.md</span>). Laissez vide pour rester
-          en mode démonstration (données simulées).
+          ${t('discordcfg.desc')}
         </div>
         <div class="gm-form-row">
-          <label>URL du backend</label>
+          <label>${t('discordcfg.url_label')}</label>
           <input type="text" placeholder="http://localhost:3001" value="${esc(MODAL.form.url)}" data-field="url" data-action="form-input">
         </div>
         ${MODAL.status ? `<div class="gm-discord-status ${MODAL.status.tone}">${esc(MODAL.status.text)}</div>` : ''}
         <div class="gm-modal-actions">
-          <button class="gm-btn gm-btn-ghost" data-action="test-discord-config">Tester la connexion</button>
-          <button class="gm-btn gm-btn-primary" data-action="save-discord-config">Enregistrer</button>
+          <button class="gm-btn gm-btn-ghost" data-action="test-discord-config">${t('discordcfg.test')}</button>
+          <button class="gm-btn gm-btn-primary" data-action="save-discord-config">${t('discordcfg.save')}</button>
         </div>
       </div>
     </div>
@@ -1191,59 +1425,39 @@ function renderPlayerModal(){
   return `
     <div class="gm-modal-overlay" data-action="close-modal">
       <div class="gm-modal" data-stop="1">
-        <h3>${MODAL.editingId ? 'Modifier le profil' : 'Nouveau joueur'}</h3>
+        <h3>${MODAL.editingId ? t('playermodal.edit_title') : t('playermodal.new_title')}</h3>
         <div class="gm-form-row">
-          <label>Pseudo en jeu *</label>
+          <label>${t('playermodal.pseudo_label')}</label>
           <input type="text" value="${esc(f.pseudo)}" data-field="pseudo" data-action="form-input">
         </div>
         <div class="gm-form-2col">
           <div class="gm-form-row">
-            <label>Classe principale</label>
+            <label>${t('playermodal.main_class')}</label>
             <select data-field="classId" data-action="form-input">
-              <option value="" ${!f.classId?'selected':''}>— Choisir une classe —</option>
+              <option value="" ${!f.classId?'selected':''}>${t('onboarding.choose_class')}</option>
               ${CLASSES.map(c => `<option value="${c.id}" ${f.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
             </select>
           </div>
           <div class="gm-form-row">
-            <label>Classe secondaire (facultatif)</label>
+            <label>${t('playermodal.secondary_class')}</label>
             <select data-field="secondClassId" data-action="form-input">
-              <option value="">Aucune</option>
+              <option value="">${t('playermodal.none')}</option>
               ${CLASSES.map(c => `<option value="${c.id}" ${f.secondClassId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
             </select>
           </div>
         </div>
         <div class="gm-form-row">
-          <label>Statut</label>
+          <label>${t('playermodal.status_label')}</label>
           <select data-field="status" data-action="form-input">
-            <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>Nouveau joueur</option>
-            <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>Joueur expérimenté</option>
+            <option value="Nouveau joueur" ${f.status==='Nouveau joueur'?'selected':''}>${t('status.new')}</option>
+            <option value="Joueur expérimenté" ${f.status==='Joueur expérimenté'?'selected':''}>${t('status.confirmed')}</option>
           </select>
         </div>
 
-        ${true ? `
-        <div class="gm-form-row">
-          <label>Identifiant Discord</label>
-          <div class="gm-discord-row">
-            <div><input type="text" placeholder="ex : 123456789012345678" value="${esc(f.discordId)}" data-field="discordId" data-action="form-input"></div>
-            <button class="gm-btn gm-btn-sm gm-btn-ghost" data-action="fetch-discord">Récupérer le profil Discord</button>
-          </div>
-          ${MODAL.discordStatus ? `<div class="gm-discord-status ${MODAL.discordStatus.tone}">${esc(MODAL.discordStatus.text)}</div>` : ''}
-          ${f.discordUsername ? `
-          <div class="gm-discord-preview">
-            ${f.discordAvatar ? `<img class="gm-avatar" style="width:32px;height:32px" src="${esc(f.discordAvatar)}">` : `<div class="gm-avatar-fallback" style="width:32px;height:32px">${esc(f.discordUsername.slice(0,2).toUpperCase())}</div>`}
-            <div style="font-size:12.5px;">@${esc(f.discordUsername)}</div>
-          </div>` : ''}
-          <div class="gm-note">Saisie manuelle possible si la récupération échoue :</div>
-          <div class="gm-form-2col" style="margin-top:6px;">
-            <input type="text" placeholder="Pseudo Discord" value="${esc(f.discordUsername)}" data-field="discordUsername" data-action="form-input">
-            <input type="text" placeholder="URL de l'avatar" value="${esc(f.discordAvatar)}" data-field="discordAvatar" data-action="form-input">
-          </div>
-        </div>` : ''}
-
         ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
         <div class="gm-modal-actions">
-          <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
-          <button class="gm-btn gm-btn-primary" data-action="save-player">Enregistrer</button>
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">${t('playermodal.cancel')}</button>
+          <button class="gm-btn gm-btn-primary" data-action="save-player">${t('playermodal.save')}</button>
         </div>
       </div>
     </div>
@@ -1255,17 +1469,17 @@ function renderClassModal(){
   return `
     <div class="gm-modal-overlay" data-action="close-modal">
       <div class="gm-modal" data-stop="1">
-        <h3>${MODAL.editingId ? 'Modifier la classe' : 'Nouvelle classe'}</h3>
-        <div class="gm-form-row"><label>Nom *</label><input type="text" value="${esc(f.name)}" data-field="name" data-action="form-input"></div>
+        <h3>${MODAL.editingId ? t('classmodal.edit_title') : t('classmodal.new_title')}</h3>
+        <div class="gm-form-row"><label>${t('classmodal.name_label')}</label><input type="text" value="${esc(f.name)}" data-field="name" data-action="form-input"></div>
         <div class="gm-form-2col">
-          <div class="gm-form-row"><label>Couleur</label><input type="color" value="${f.color}" data-field="color" data-action="form-input" style="height:38px;padding:4px;"></div>
-          <div class="gm-form-row"><label>Icône (emoji ou chemin d'image, facultatif)</label><input type="text" value="${esc(f.icon)}" data-field="icon" data-action="form-input" placeholder="🛡️ ou classes/monicone.png"></div>
+          <div class="gm-form-row"><label>${t('classmodal.color_label')}</label><input type="color" value="${f.color}" data-field="color" data-action="form-input" style="height:38px;padding:4px;"></div>
+          <div class="gm-form-row"><label>${t('classmodal.icon_label')}</label><input type="text" value="${esc(f.icon)}" data-field="icon" data-action="form-input" placeholder="🛡️ ou classes/monicone.png"></div>
         </div>
-        <div class="gm-form-row"><label>Ordre d'affichage</label><input type="number" value="${f.order}" data-field="order" data-action="form-input"></div>
+        <div class="gm-form-row"><label>${t('classmodal.order_label')}</label><input type="number" value="${f.order}" data-field="order" data-action="form-input"></div>
         ${MODAL.error ? `<div class="gm-form-error">${esc(MODAL.error)}</div>` : ''}
         <div class="gm-modal-actions">
-          <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
-          <button class="gm-btn gm-btn-primary" data-action="save-class">Enregistrer</button>
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">${t('playermodal.cancel')}</button>
+          <button class="gm-btn gm-btn-primary" data-action="save-class">${t('playermodal.save')}</button>
         </div>
       </div>
     </div>
@@ -1279,8 +1493,8 @@ function renderConfirmModal(){
         <h3>${esc(MODAL.title)}</h3>
         <div class="gm-note" style="font-size:13px;color:var(--text);opacity:0.85;">${esc(MODAL.message)}</div>
         <div class="gm-modal-actions">
-          <button class="gm-btn gm-btn-ghost" data-action="close-modal">Annuler</button>
-          <button class="gm-btn gm-btn-danger" data-action="confirm-modal">Confirmer</button>
+          <button class="gm-btn gm-btn-ghost" data-action="close-modal">${t('confirm.cancel')}</button>
+          <button class="gm-btn gm-btn-danger" data-action="confirm-modal">${t('confirm.confirm')}</button>
         </div>
       </div>
     </div>
@@ -1314,9 +1528,9 @@ function bindEvents(){
 
     if (['nav','edit-player','new-class','edit-class','delete-class',
          'new-group','delete-group','remove-slot',
-         'confirm-modal','save-player','save-class','fetch-discord','toggle-mobile-nav',
+         'confirm-modal','save-player','save-class','toggle-mobile-nav',
          'open-discord-config','save-discord-config','test-discord-config',
-         'connect-discord','logout-discord','confirm-onboarding'].includes(action)) {
+         'connect-discord','logout-discord','confirm-onboarding','set-lang'].includes(action)) {
       el.addEventListener('click', (e) => {
         handleClick(action, el, e);
       });
@@ -1346,13 +1560,13 @@ function handleClick(action, el, e){
     case 'confirm-modal': if (MODAL && MODAL.onConfirm) MODAL.onConfirm(); break;
     case 'save-player': savePlayerForm(); break;
     case 'save-class': saveClassForm(); break;
-    case 'fetch-discord': simulateDiscordFetch(); break;
     case 'open-discord-config': openDiscordConfigModal(); break;
     case 'save-discord-config': saveDiscordConfig(); break;
     case 'test-discord-config': testDiscordConfig(); break;
     case 'connect-discord': connectWithDiscord(); break;
     case 'logout-discord': logoutDiscord(); break;
     case 'confirm-onboarding': confirmOnboarding(); break;
+    case 'set-lang': setLang(el.getAttribute('data-lang')); break;
   }
 }
 
