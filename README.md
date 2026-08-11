@@ -55,20 +55,30 @@ PORT=3001
 CORS_ORIGIN=*
 ```
 
-**Important : accès libre, sans mot de passe administrateur.** N'importe qui
-qui ouvre le site a les mêmes droits complets (voir, éditer, supprimer). Seule
-l'inscription d'un joueur est protégée : elle passe obligatoirement par la
-connexion Discord, qui vérifie que la personne possède bien le rôle requis.
+**Important : connexion Discord obligatoire pour accéder au site.** Depuis
+cette version, personne ne peut voir ni modifier quoi que ce soit sans
+s'être connecté avec un compte Discord possédant le rôle requis. Une fois
+connecté, tout le monde a les mêmes droits (voir, éditer, supprimer) — il
+n'y a pas de rôle Admin séparé dans l'application elle-même.
 
-## Connexion Discord des joueurs (remplace l'ancienne synchro manuelle)
+## Connexion Discord obligatoire (remplace l'ancienne synchro manuelle)
 
-Depuis l'onglet **Joueurs**, le bouton **🔗 Connexion Discord** envoie le
-visiteur s'authentifier sur Discord (OAuth2). Si son compte est bien membre
-du serveur configuré (`DISCORD_GUILD_ID`) et possède le rôle
-`DISCORD_REQUIRED_ROLE_NAME` (« Aion 2 » par défaut), il est automatiquement
-ajouté à la liste des joueurs (pseudo, avatar et identifiant Discord
-pré-remplis — il ne reste qu'à choisir sa classe). Sinon, un message explique
-pourquoi l'accès a été refusé.
+À l'ouverture du site, un écran de connexion s'affiche avec un bouton
+**🔗 Se connecter avec Discord**. La personne s'authentifie sur Discord
+(OAuth2) ; le serveur vérifie qu'elle est bien membre du serveur configuré
+(`DISCORD_GUILD_ID`) et qu'elle possède le rôle `DISCORD_REQUIRED_ROLE_NAME`
+(« Aion 2 » par défaut) :
+
+- **Rôle présent** → elle est automatiquement ajoutée à la liste des joueurs
+  (pseudo, avatar et identifiant Discord pré-remplis, il ne reste qu'à
+  choisir sa classe), une session s'ouvre (cookie valable 30 jours), et
+  l'application s'affiche normalement.
+- **Rôle absent, ou pas membre du serveur** → accès refusé, message explicite,
+  aucune session n'est créée, l'écran de connexion reste affiché.
+
+Une fois connectée, la personne voit son pseudo et son avatar dans la barre
+latérale, avec un bouton pour se déconnecter (⏻) — qui referme la session et
+raffiche l'écran de connexion.
 
 Prérequis :
 - `DISCORD_GUILD_ID`, `DISCORD_CLIENT_ID` et `DISCORD_CLIENT_SECRET` doivent
@@ -81,6 +91,12 @@ Prérequis :
 
 Se reconnecter avec un compte déjà enregistré met simplement à jour son
 pseudo Discord et son avatar, sans créer de doublon.
+
+**Remarque sur les sessions** : elles sont gardées en mémoire par le
+serveur. Si le service redémarre (mise en veille sur le plan gratuit de
+Render après une longue inactivité, par exemple), tout le monde devra se
+reconnecter — c'est normal, aucune donnée de la guilde n'est perdue pour
+autant (elle reste dans `data.json`).
 
 ## 4. Lancer le serveur
 
@@ -122,6 +138,52 @@ le même serveur.
 Si `guildWarning` vaut `bot_not_in_guild_or_member_not_found`, le bot n'est
 probablement pas présent sur le serveur configuré (`DISCORD_GUILD_ID`) : le
 profil global Discord est tout de même renvoyé.
+
+## Annonces de groupes dans Discord (boutons Rejoindre / Quitter)
+
+Depuis un groupe PvE ou PvP sur le site, le bouton **📣 Publier sur Discord**
+envoie (ou met à jour) un message dans un salon Discord de votre choix, avec
+le nom du groupe, l'activité, la date, et la liste des emplacements. Deux
+boutons apparaissent sous le message :
+
+- **✅ Rejoindre** — prend automatiquement le premier emplacement libre.
+  Vérifie que la personne a bien le rôle requis, qu'elle a déjà choisi une
+  classe sur le site, et qu'elle n'est pas déjà inscrite. Trois classes ne
+  peuvent apparaître qu'une seule fois par groupe : **Templier, Clerc et
+  Aède** — si l'une d'elles est déjà prise, l'inscription est refusée avec
+  un message explicite (visible seulement par la personne qui clique).
+- **🚪 Quitter** — libère l'emplacement de la personne dans ce groupe.
+
+Toute inscription/désinscription via Discord met à jour **le site** en temps
+réel (le fichier de données partagé), et inversement : si vous modifiez le
+groupe sur le site, republiez-le pour rafraîchir le message Discord.
+
+Si la personne qui clique sur "Rejoindre" ne s'est jamais connectée sur le
+site, un profil est créé automatiquement à partir de son compte Discord
+(comme lors d'une connexion classique), mais sans classe — elle devra en
+choisir une sur le site avant de pouvoir rejoindre un groupe.
+
+### Prérequis
+
+- `DISCORD_ANNOUNCE_CHANNEL_ID` dans `.env` : l'ID du salon Discord où
+  publier par défaut (clic droit sur le salon → Copier l'identifiant, avec
+  le Mode développeur activé dans Discord).
+- Le bot doit avoir la permission d'**envoyer des messages** et d'**intégrer
+  des liens (embeds)** dans ce salon.
+- Le bot reste connecté en permanence à Discord (pas seulement pour des
+  requêtes ponctuelles) : c'est nécessaire pour recevoir les clics sur les
+  boutons en temps réel.
+
+### ⚠️ Limite du plan gratuit Render
+
+Sur le plan gratuit, Render met le service en veille après ~15 minutes sans
+visite sur le site — et le bot se déconnecte avec lui. Le premier clic sur
+un bouton Discord après une période d'inactivité peut donc échouer ou mettre
+quelques secondes à fonctionner, le temps que Render redémarre le service.
+Pour un bot toujours actif, deux options :
+- Un service de "ping" gratuit (ex. [UptimeRobot](https://uptimerobot.com))
+  qui visite votre site toutes les 10 minutes pour l'empêcher de s'endormir.
+- Passer sur un plan Render payant (pas de mise en veille).
 
 ## Sauvegarde automatique des joueurs et des groupes
 
@@ -211,11 +273,11 @@ mois) ou un VPS reste une option, mais n'est pas nécessaire pour démarrer.
 
 ### Rappel sécurité
 
-Ce backend est actuellement **sans mot de passe** (accès libre à tous ceux
-qui ont le lien). Une fois hébergé publiquement, n'importe qui trouvant
-l'URL pourra éditer ou supprimer des joueurs et des groupes — pas seulement
-les consulter. Si vous voulez remettre une protection minimale (mot de passe
-partagé, ou accès restreint), dites-le-moi, c'est rapide à rajouter.
+Ce backend exige désormais une connexion Discord avec le rôle requis pour
+tout accès aux données. Toute personne sans ce rôle ne peut ni consulter ni
+modifier quoi que ce soit. Une fois connectées, en revanche, toutes les
+personnes autorisées ont les mêmes droits complets (voir, éditer,
+supprimer) — il n'y a pas de rôle Admin séparé au sein de l'application.
 
 ## Déploiement (autres options)
 
